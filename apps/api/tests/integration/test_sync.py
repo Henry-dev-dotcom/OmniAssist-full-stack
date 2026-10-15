@@ -25,10 +25,16 @@ async def push(c: httpx.AsyncClient, who: str, *ms: dict) -> list[dict]:
     return r.json()["data"]["results"]
 
 
-async def pull(c: httpx.AsyncClient, who: str, cursor: int = 0, **q: Any) -> dict:
+async def pull(
+    c: httpx.AsyncClient, who: str, cursor: int = 0, *, activity: bool = False, **q: Any
+) -> dict:
+    """Pulls one page; activity events are left out unless asked for."""
     r = await c.get("/sync/pull", params={"cursor": cursor, **q}, headers=auth(who))
     assert r.status_code == 200, r.text
-    return r.json()["data"]
+    data: dict = r.json()["data"]
+    if not activity:
+        data["changes"] = [x for x in data["changes"] if x["entity_type"] != "activity_event"]
+    return data
 
 
 async def test_push_create_then_pull(client: httpx.AsyncClient) -> None:  # noqa: F811
@@ -51,7 +57,9 @@ async def test_replayed_mutation_is_idempotent(client: httpx.AsyncClient) -> Non
     first = (await push(client, "ada", m))[0]
     second = (await push(client, "ada", m))[0]
     assert first == second
-    assert len((await pull(client, "ada"))["changes"]) == 1
+    feed = (await pull(client, "ada", activity=True))["changes"]
+    # One record and one activity event: the replay duplicated neither (Spec 4.12).
+    assert sorted(c["entity_type"] for c in feed) == ["activity_event", "project"]
 
 
 async def test_reused_mutation_id_with_other_body_rejected(client: httpx.AsyncClient) -> None:  # noqa: F811

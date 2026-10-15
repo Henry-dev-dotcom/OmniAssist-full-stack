@@ -42,6 +42,7 @@ class TaskCreate(_Fields):
     id: uuid.UUID | None = None  # clients generate IDs so offline records keep identity
     workspace_id: uuid.UUID
     project_id: uuid.UUID | None = None
+    milestone_id: uuid.UUID | None = None
     parent_task_id: uuid.UUID | None = None
     title: str = Field(min_length=1, max_length=240)
     description: str | None = None
@@ -58,6 +59,7 @@ class TaskCreate(_Fields):
 
 class TaskUpdate(_Fields):
     project_id: uuid.UUID | None = None
+    milestone_id: uuid.UUID | None = None
     parent_task_id: uuid.UUID | None = None
     title: str | None = Field(default=None, min_length=1, max_length=240)
     description: str | None = None
@@ -79,6 +81,7 @@ class TaskOut(BaseModel):
     id: uuid.UUID
     workspace_id: uuid.UUID
     project_id: uuid.UUID | None
+    milestone_id: uuid.UUID | None
     parent_task_id: uuid.UUID | None
     title: str
     description: str | None

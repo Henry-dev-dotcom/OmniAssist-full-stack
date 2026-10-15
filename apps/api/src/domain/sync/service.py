@@ -9,9 +9,26 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.domain.activity import repository as activity
+from src.domain.analyses import repository as analyses
+from src.domain.analyses.schemas import AnalysisCreate, AnalysisOut, AnalysisUpdate
 from src.domain.common.errors import DomainError, ErrorCode
+from src.domain.common.records import RecordRepo
+from src.domain.experiments import repository as experiments
+from src.domain.experiments.schemas import ExperimentCreate, ExperimentOut, ExperimentUpdate
+from src.domain.milestones import repository as milestones
+from src.domain.milestones.schemas import MilestoneCreate, MilestoneOut, MilestoneUpdate
 from src.domain.projects import repository as projects
 from src.domain.projects.schemas import ProjectCreate, ProjectOut, ProjectUpdate
+from src.domain.reviews import repository as reviews
+from src.domain.reviews.schemas import (
+    ReviewCreate,
+    ReviewItemCreate,
+    ReviewItemOut,
+    ReviewItemUpdate,
+    ReviewOut,
+    ReviewUpdate,
+)
 from src.domain.sync import repository as sync
 from src.domain.tasks import repository as tasks
 from src.domain.tasks.schemas import TaskCreate, TaskOut, TaskUpdate
@@ -58,23 +75,32 @@ ENTITIES = {
     "project": Entity(projects, ProjectCreate, ProjectUpdate, ProjectOut),
     "task": Entity(tasks, TaskCreate, TaskUpdate, TaskOut),
     "time_block": Entity(time_blocks, TimeBlockCreate, TimeBlockUpdate, TimeBlockOut),
+    "milestone": Entity(milestones.repo, MilestoneCreate, MilestoneUpdate, MilestoneOut),
+    "review": Entity(reviews.reviews, ReviewCreate, ReviewUpdate, ReviewOut),
+    "review_item": Entity(reviews.items, ReviewItemCreate, ReviewItemUpdate, ReviewItemOut),
+    "analysis_record": Entity(analyses.repo, AnalysisCreate, AnalysisUpdate, AnalysisOut),
+    "experiment_entry": Entity(experiments.repo, ExperimentCreate, ExperimentUpdate, ExperimentOut),
 }
 
 
-async def _apply(s: AsyncSession, e: Entity, m: MutationIn) -> dict[str, Any]:
+async def _apply(s: AsyncSession, e: Entity, m: MutationIn, actor_id: uuid.UUID) -> dict[str, Any]:
     current = await e.repo.get_in_workspace(s, m.entity_id, m.workspace_id)
+    generic = isinstance(e.repo, RecordRepo)
+    extra = {"actor_id": actor_id} if generic else {}
     if m.operation == "create":
         if current is not None:
             return _rejected(ErrorCode.VERSION_CONFLICT, "Record already exists.")
         data = e.create_schema.model_validate(
             {**m.changes, "id": m.entity_id, "workspace_id": m.workspace_id}
         )
-        row = await e.repo.create(s, data.values())  # type: ignore[attr-defined]
+        row = await e.repo.create(s, data.values(), **extra)  # type: ignore[attr-defined]
+        await _log(s, m, actor_id, {}, None)
         return {"status": "accepted", "entity_version": row["version"]}
     if current is None:
         return _rejected(ErrorCode.NOT_FOUND, "Record not found.")
     if m.operation == "delete":
         await e.repo.tombstone(s, m.entity_id)
+        await _log(s, m, actor_id, {}, current)
         return {"status": "accepted", "entity_version": current["version"] + 1}
     if m.base_version is None:
         return _rejected(ErrorCode.VALIDATION_ERROR, "base_version is required for update.")
@@ -91,8 +117,20 @@ async def _apply(s: AsyncSession, e: Entity, m: MutationIn) -> dict[str, Any]:
     if e.repo is projects:
         row = await projects.update(s, m.entity_id, changes)
     else:
-        row = await e.repo.update(s, m.entity_id, m.workspace_id, changes)
+        row = await e.repo.update(s, m.entity_id, m.workspace_id, changes, **extra)
+    await _log(s, m, actor_id, changes, current)
     return {"status": "accepted", "entity_version": row["version"]}
+
+
+async def _log(
+    s: AsyncSession,
+    m: MutationIn,
+    actor_id: uuid.UUID,
+    changes: dict[str, Any],
+    before: dict[str, Any] | None,
+) -> None:
+    action, meta = activity.describe(m.operation, changes, before)
+    await activity.record(s, m.workspace_id, actor_id, m.entity_type, m.entity_id, action, meta)
 
 
 async def apply_mutation(s: AsyncSession, actor_id: uuid.UUID, m: MutationIn) -> dict[str, Any]:
@@ -109,7 +147,7 @@ async def apply_mutation(s: AsyncSession, actor_id: uuid.UUID, m: MutationIn) ->
         return _rejected(ErrorCode.VALIDATION_ERROR, f"Unsupported entity_type: {m.entity_type}.")
     try:
         async with s.begin_nested():  # a failed mutation rolls back alone
-            result = await _apply(s, entity, m)
+            result = await _apply(s, entity, m, actor_id)
     except ValidationError:
         result = _rejected(ErrorCode.VALIDATION_ERROR, "Mutation values are invalid.")
     except DomainError as e:

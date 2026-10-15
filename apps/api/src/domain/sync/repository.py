@@ -110,3 +110,33 @@ async def save_conflict(
     )  # fmt: skip
     cid: uuid.UUID = row.scalar_one()
     return cid
+
+
+async def open_conflicts(s: AsyncSession, workspace_id: uuid.UUID) -> list[dict[str, Any]]:
+    rows = await s.execute(
+        text(
+            """SELECT id, entity_type, entity_id, base_version, local_payload, server_payload,
+            created_at FROM sync_conflicts
+            WHERE workspace_id = :w AND status = 'open' ORDER BY created_at"""
+        ),
+        {"w": workspace_id},
+    )
+    return [dict(r) for r in rows.mappings()]
+
+
+async def close_conflict(
+    s: AsyncSession, conflict_id: uuid.UUID, user_id: uuid.UUID, resolution: str
+) -> dict[str, Any] | None:
+    """Marks an open conflict resolved if the user belongs to its workspace."""
+    row = await s.execute(
+        text(
+            """UPDATE sync_conflicts c SET status = :res, resolved_at = now()
+            FROM workspace_members m
+            WHERE c.id = :id AND c.status = 'open'
+              AND m.workspace_id = c.workspace_id AND m.user_id = :u
+            RETURNING c.workspace_id, c.entity_type, c.entity_id"""
+        ),
+        {"id": conflict_id, "u": user_id, "res": resolution},
+    )
+    found = row.mappings().first()
+    return dict(found) if found else None

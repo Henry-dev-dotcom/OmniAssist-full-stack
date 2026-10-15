@@ -8,17 +8,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.domain.common.errors import DomainError, ErrorCode
 from src.domain.common.ids import new_uuid7
+from src.domain.common.records import require_in_workspace
 from src.domain.notifications.repository import cancel_for_entity, sync_task_reminders
 from src.domain.sync.repository import record_change
 from src.domain.tasks.schemas import TaskOut
 
 COLUMNS = (
-    "id, workspace_id, project_id, parent_task_id, title, description, status, priority, "
-    "due_at, estimated_minutes, recurrence_rule, completed_at, version, updated_at"
+    "id, workspace_id, project_id, milestone_id, parent_task_id, title, description, status, "
+    "priority, due_at, estimated_minutes, recurrence_rule, completed_at, version, updated_at"
 )
 ENUM_CASTS = {"status": "task_status", "priority": "task_priority"}
-UPDATABLE = ("project_id", "parent_task_id", "title", "description", "status", "priority",
-             "due_at", "estimated_minutes", "recurrence_rule", "completed_at")  # fmt: skip
+UPDATABLE = ("project_id", "milestone_id", "parent_task_id", "title", "description", "status",
+             "priority", "due_at", "estimated_minutes", "recurrence_rule",
+             "completed_at")  # fmt: skip
 
 
 def _payload(row: dict[str, Any], keys: set[str] | None = None) -> dict[str, Any]:
@@ -31,8 +33,10 @@ async def _check_links(
     task_id: uuid.UUID | None,
     project_id: uuid.UUID | None,
     parent_id: uuid.UUID | None,
+    milestone_id: uuid.UUID | None = None,
 ) -> None:
-    """Linked project and parent task must live in the same workspace."""
+    """Linked project, milestone and parent task must live in the same workspace."""
+    await require_in_workspace(s, "milestones", milestone_id, workspace_id, "Milestone")
     if project_id is not None:
         row = await s.execute(
             text(
@@ -112,7 +116,7 @@ async def create(s: AsyncSession, values: dict[str, Any]) -> dict[str, Any]:
     values = {**values, "id": values.get("id") or new_uuid7()}
     await _check_links(
         s, values["workspace_id"], values["id"], values.get("project_id"),
-        values.get("parent_task_id"),
+        values.get("parent_task_id"), values.get("milestone_id"),
     )  # fmt: skip
     done_now = values["status"] == "complete" and values.get("completed_at") is None
     completed = "now()" if done_now else ":completed_at"
@@ -120,10 +124,11 @@ async def create(s: AsyncSession, values: dict[str, Any]) -> dict[str, Any]:
         async with s.begin_nested():
             row = await s.execute(
                 text(
-                    f"""INSERT INTO tasks (id, workspace_id, project_id, parent_task_id, title,
-                      description, status, priority, due_at, estimated_minutes, recurrence_rule,
-                      completed_at)
-                    VALUES (:id, :workspace_id, :project_id, :parent_task_id, :title, :description,
+                    f"""INSERT INTO tasks (id, workspace_id, project_id, milestone_id,
+                      parent_task_id, title, description, status, priority, due_at,
+                      estimated_minutes, recurrence_rule, completed_at)
+                    VALUES (:id, :workspace_id, :project_id, :milestone_id, :parent_task_id,
+                      :title, :description,
                       CAST(:status AS task_status), CAST(:priority AS task_priority), :due_at,
                       :estimated_minutes, :recurrence_rule, {completed})
                     RETURNING {COLUMNS}"""
@@ -145,10 +150,11 @@ async def create(s: AsyncSession, values: dict[str, Any]) -> dict[str, Any]:
 async def update(
     s: AsyncSession, task_id: uuid.UUID, workspace_id: uuid.UUID, changes: dict[str, Any]
 ) -> dict[str, Any]:
-    if "project_id" in changes or "parent_task_id" in changes:
+    if changes.keys() & {"project_id", "parent_task_id", "milestone_id"}:
         await _check_links(
-            s, workspace_id, task_id, changes.get("project_id"), changes.get("parent_task_id")
-        )
+            s, workspace_id, task_id, changes.get("project_id"), changes.get("parent_task_id"),
+            changes.get("milestone_id"),
+        )  # fmt: skip
     sets = ["version = version + 1", "updated_at = now()"]
     for key in UPDATABLE:
         if key in changes:

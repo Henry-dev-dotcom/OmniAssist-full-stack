@@ -6,6 +6,7 @@ from src.api.error_handlers import register_error_handlers
 from src.api.routes import (
     notifications,
     projects,
+    research,
     sync,
     tasks,
     time_blocks,
@@ -35,6 +36,7 @@ for router in (
     users.router,
     workspaces.router,
     projects.router,
+    research.router,
     tasks.router,
     notifications.router,
     time_blocks.router,
