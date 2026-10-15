@@ -31,12 +31,18 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
     required String title,
     required String mutationId,
     required DateTime now,
+    String? projectId,
+    String? milestoneId,
+    String? status,
   }) => transaction(() async {
     await into(tasks).insert(
       TasksCompanion.insert(
         id: id,
         workspaceId: workspaceId,
         title: title,
+        projectId: Value(projectId),
+        milestoneId: Value(milestoneId),
+        status: status == null ? const Value.absent() : Value(status),
         createdAt: now,
         updatedAt: now,
         syncState: const Value('pending_create'),
@@ -49,7 +55,12 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
         entityType: 'task',
         entityId: id,
         operation: 'create',
-        payload: jsonEncode({'title': title}),
+        payload: jsonEncode({
+          'title': title,
+          'project_id': ?projectId,
+          'milestone_id': ?milestoneId,
+          'status': ?status,
+        }),
         createdAt: now,
       ),
     );

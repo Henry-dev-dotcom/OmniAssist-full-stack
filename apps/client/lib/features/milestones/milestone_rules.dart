@@ -70,3 +70,20 @@ double milestoneProgress(Rec m, List<Rec> all, List<Task> tasks) {
       linked.where((t) => t.status == 'complete').length /
       linked.length;
 }
+
+/// True if pointing [id] at [targets] (as parent or as dependencies) would make a loop,
+/// following [next] (each id to the ids it already points at). The server checks too.
+bool wouldCycle(
+  String id,
+  Iterable<String> targets,
+  List<String> Function(String) next,
+) {
+  final seen = <String>{};
+  final stack = [...targets];
+  while (stack.isNotEmpty) {
+    final cur = stack.removeLast();
+    if (cur == id) return true;
+    if (seen.add(cur)) stack.addAll(next(cur));
+  }
+  return false;
+}

@@ -3,3 +3,5 @@
 -- CREATEDB lets the integration tests make and drop throwaway databases.
 CREATE ROLE omni LOGIN CREATEDB PASSWORD 'omni';
 CREATE DATABASE omniassist OWNER omni;
+-- Lets test teardown drop throwaway databases even while autovacuum is attached.
+GRANT pg_signal_backend TO omni;

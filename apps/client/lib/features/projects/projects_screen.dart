@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../app/providers.dart';
 import '../../database/app_database.dart';
@@ -102,6 +103,7 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                         for (final p in rows)
                           ListTile(
                             title: Text(p.name),
+                            onTap: () => context.push('/app/projects/${p.id}'),
                             subtitle: Text(
                               '${p.category} · ${p.progressValue}%'
                               '${p.syncState == 'synced' ? '' : ' · waiting to sync'}',

@@ -199,3 +199,14 @@ async def test_other_users_cannot_read_or_write(client: httpx.AsyncClient) -> No
     assert r.status_code == 404
     [w] = await push(client, "bob", mut(ws, "review", rid, "update", {"name": "Mine"}, 1))
     assert w["error_code"] == "FORBIDDEN"
+
+
+async def test_project_with_work_cannot_be_deleted(client: httpx.AsyncClient) -> None:  # noqa: F811
+    ws = await make_ws(client, "ada")
+    pid = await project(client, ws)
+    mid = new()
+    await ok(client, mut(ws, "milestone", mid, "create", {"project_id": pid, "title": "M"}))
+    [blocked] = await push(client, "ada", mut(ws, "project", pid, "delete", {}, 1))
+    assert blocked["error_code"] == "DOMAIN_RULE_VIOLATION"
+    await ok(client, mut(ws, "milestone", mid, "delete", {}, 1))
+    await ok(client, mut(ws, "project", pid, "delete", {}, 1))

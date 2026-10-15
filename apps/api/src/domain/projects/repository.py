@@ -122,7 +122,21 @@ async def update(s: AsyncSession, project_id: uuid.UUID, changes: dict[str, Any]
     return updated
 
 
+LINKED = ("tasks", "milestones", "reviews", "analysis_records", "experiment_entries")
+
+
 async def tombstone(s: AsyncSession, project_id: uuid.UUID) -> None:
+    """Only an empty project can be deleted; otherwise archive it (decision 0003)."""
+    for table in LINKED:
+        busy = await s.execute(
+            text(f"SELECT 1 FROM {table} WHERE project_id = :p AND deleted_at IS NULL LIMIT 1"),
+            {"p": project_id},
+        )
+        if busy.first() is not None:
+            raise DomainError(
+                ErrorCode.DOMAIN_RULE_VIOLATION,
+                "This project still has work in it. Archive it, or move its work first.",
+            )
     row = await s.execute(
         text(
             "UPDATE projects SET deleted_at = now(), version = version + 1, updated_at = now() "

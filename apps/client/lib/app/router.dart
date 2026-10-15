@@ -11,6 +11,12 @@ import '../features/tasks/inbox_screen.dart';
 import '../features/tasks/task_detail_screen.dart';
 import '../features/time_blocks/calendar_screen.dart';
 import '../features/today/today_page.dart';
+import '../features/analyses/analysis_page.dart';
+import '../features/experiments/experiment_page.dart';
+import '../features/milestones/milestone_page.dart';
+import '../features/projects/project_page.dart';
+import '../features/reviews/review_board_page.dart';
+import '../features/reviews/review_item_page.dart';
 import '../shared_widgets/app_scaffold.dart';
 import '../shared_widgets/async_state_view.dart';
 
@@ -62,6 +68,33 @@ GoRouter buildRouter({
           path: '/app/tasks/:id',
           builder: (_, state) =>
               TaskDetailScreen(taskId: state.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/app/projects/:id',
+          builder: (_, st) => ProjectPage(projectId: st.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/app/milestones/:id',
+          builder: (_, st) =>
+              MilestonePage(milestoneId: st.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/app/reviews/:id',
+          builder: (_, st) =>
+              ReviewBoardPage(reviewId: st.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/app/review-items/:id',
+          builder: (_, st) => ReviewItemPage(itemId: st.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/app/analyses/:id',
+          builder: (_, st) =>
+              AnalysisPage(analysisId: st.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/app/experiments/:id',
+          builder: (_, st) => ExperimentPage(entryId: st.pathParameters['id']!),
         ),
         GoRoute(path: '/app/inbox', builder: (_, _) => const InboxScreen()),
         GoRoute(

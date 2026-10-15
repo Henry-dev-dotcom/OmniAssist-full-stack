@@ -68,17 +68,31 @@ class ProjectDao extends DatabaseAccessor<AppDatabase> with _$ProjectDaoMixin {
     );
   });
 
-  Future<void> updateStatusWithOutbox({
+  /// Applies [changes] (API field names: name, status, description, progress_value)
+  /// locally and queues one update mutation, in one transaction.
+  Future<void> updateWithOutbox({
     required String id,
-    required String status,
+    required Map<String, Object?> changes,
     required String mutationId,
     required DateTime now,
   }) => transaction(() async {
     final row = await byId(id);
-    if (row == null) return;
+    if (row == null || changes.isEmpty) return;
+    bool has(String k) => changes.containsKey(k);
     await (update(projects)..where((p) => p.id.equals(id))).write(
       ProjectsCompanion(
-        status: Value(status),
+        name: has('name')
+            ? Value(changes['name'] as String)
+            : const Value.absent(),
+        status: has('status')
+            ? Value(changes['status'] as String)
+            : const Value.absent(),
+        description: has('description')
+            ? Value(changes['description'] as String?)
+            : const Value.absent(),
+        progressValue: has('progress_value')
+            ? Value(changes['progress_value'] as int)
+            : const Value.absent(),
         updatedAt: Value(now),
         syncState: Value(
           row.syncState == 'pending_create'
@@ -92,11 +106,39 @@ class ProjectDao extends DatabaseAccessor<AppDatabase> with _$ProjectDaoMixin {
       row.workspaceId,
       id,
       'update',
-      {'status': status},
+      changes,
       row.version,
       now,
     );
   });
+
+  Future<void> deleteWithOutbox({
+    required String id,
+    required String mutationId,
+    required DateTime now,
+  }) => transaction(() async {
+    final row = await byId(id);
+    if (row == null) return;
+    await (update(projects)..where((p) => p.id.equals(id))).write(
+      ProjectsCompanion(
+        deletedAt: Value(now),
+        updatedAt: Value(now),
+        syncState: const Value('pending_delete'),
+      ),
+    );
+    await _enqueue(
+      mutationId,
+      row.workspaceId,
+      id,
+      'delete',
+      const {},
+      row.version,
+      now,
+    );
+  });
+
+  Stream<Project?> watchById(String id) =>
+      (select(projects)..where((p) => p.id.equals(id))).watchSingleOrNull();
 
   /// Applies server rows. A row with unsent local edits is never overwritten;
   /// conflicts are the sync engine's job.

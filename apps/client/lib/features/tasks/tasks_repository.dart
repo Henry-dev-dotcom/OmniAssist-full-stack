@@ -65,6 +65,31 @@ class TasksRepository {
     now: _clock.now(),
   );
 
+  /// A planned task created inside a project, optionally under a milestone.
+  Future<String> createIn(
+    String ws, {
+    required String title,
+    required String projectId,
+    String? milestoneId,
+  }) async {
+    final id = newUuid7(now: _clock.now());
+    await _db.taskDao.createWithOutbox(
+      id: id,
+      workspaceId: ws,
+      title: title.trim(),
+      projectId: projectId,
+      milestoneId: milestoneId,
+      status: 'planned',
+      mutationId: newUuid7(now: _clock.now()),
+      now: _clock.now(),
+    );
+    return id;
+  }
+
+  /// Links an existing task to a milestone, or unlinks it with null.
+  Future<void> linkMilestone(String id, String? milestoneId) =>
+      _change(id, {'milestone_id': milestoneId});
+
   Future<void> setDone(String id, bool done) =>
       _change(id, {'status': done ? 'complete' : 'planned'});
 
