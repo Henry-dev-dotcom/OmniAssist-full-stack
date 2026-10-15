@@ -11,13 +11,16 @@ String overlapMessage(List<TimeBlock> clashes) => clashes.length == 1
     ? 'Saved. It overlaps "${clashes.first.title}".'
     : 'Saved. It overlaps ${clashes.length} other blocks.';
 
-Future<void> showTimeBlockEditor(BuildContext context,
-        {required String ws, required DateTime day, TimeBlock? block}) =>
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (_) => _Editor(ws: ws, day: day, block: block),
-    );
+Future<void> showTimeBlockEditor(
+  BuildContext context, {
+  required String ws,
+  required DateTime day,
+  TimeBlock? block,
+}) => showModalBottomSheet<void>(
+  context: context,
+  isScrollControlled: true,
+  builder: (_) => _Editor(ws: ws, day: day, block: block),
+);
 
 class _Editor extends ConsumerStatefulWidget {
   const _Editor({required this.ws, required this.day, this.block});
@@ -31,10 +34,11 @@ class _Editor extends ConsumerStatefulWidget {
 class _EditorState extends ConsumerState<_Editor> {
   late final _title = TextEditingController(text: widget.block?.title ?? '');
   late String _category = widget.block?.category ?? 'focus';
-  late DateTime _start = widget.block?.startsAt.toLocal() ??
+  late DateTime _start =
+      widget.block?.startsAt.toLocal() ??
       DateTime(widget.day.year, widget.day.month, widget.day.day, 9);
-  late DateTime _end = widget.block?.endsAt.toLocal() ??
-      _start.add(const Duration(hours: 1));
+  late DateTime _end =
+      widget.block?.endsAt.toLocal() ?? _start.add(const Duration(hours: 1));
   late String _status = widget.block?.status ?? 'planned';
   String? _error;
 
@@ -46,13 +50,16 @@ class _EditorState extends ConsumerState<_Editor> {
 
   Future<DateTime?> _pick(DateTime initial) async {
     final d = await showDatePicker(
-        context: context,
-        initialDate: initial,
-        firstDate: DateTime(2020),
-        lastDate: DateTime(2100));
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2100),
+    );
     if (d == null || !mounted) return null;
     final t = await showTimePicker(
-        context: context, initialTime: TimeOfDay.fromDateTime(initial));
+      context: context,
+      initialTime: TimeOfDay.fromDateTime(initial),
+    );
     if (t == null) return null;
     return DateTime(d.year, d.month, d.day, t.hour, t.minute);
   }
@@ -69,18 +76,24 @@ class _EditorState extends ConsumerState<_Editor> {
               title: _title.text,
               category: _category,
               startsAt: _start,
-              endsAt: _end)
-          : await repo.edit(b.id,
+              endsAt: _end,
+            )
+          : await repo.edit(
+              b.id,
               title: _title.text,
               category: _category,
               startsAt: _start,
               endsAt: _end,
-              status: _status);
+              status: _status,
+            );
       nav.pop();
-      messenger.showSnackBar(SnackBar(
-          content: Text(saved.overlaps.isEmpty
-              ? 'Saved.'
-              : overlapMessage(saved.overlaps))));
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            saved.overlaps.isEmpty ? 'Saved.' : overlapMessage(saved.overlaps),
+          ),
+        ),
+      );
     } on AppError catch (e) {
       setState(() => _error = e.message);
     }
@@ -91,85 +104,107 @@ class _EditorState extends ConsumerState<_Editor> {
     final editing = widget.block != null;
     return Padding(
       padding: EdgeInsets.fromLTRB(
-          16, 16, 16, 16 + MediaQuery.viewInsetsOf(context).bottom),
+        16,
+        16,
+        16,
+        16 + MediaQuery.viewInsetsOf(context).bottom,
+      ),
       child: SingleChildScrollView(
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(editing ? 'Edit time block' : 'New time block',
-              style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 12),
-          TextField(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              editing ? 'Edit time block' : 'New time block',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 12),
+            TextField(
               controller: _title,
               autofocus: !editing,
-              decoration: const InputDecoration(labelText: 'Title')),
-          const SizedBox(height: 12),
-          DropdownButtonFormField<String>(
-            initialValue: _category,
-            decoration: const InputDecoration(labelText: 'Category'),
-            items: [
-              for (final c in {...blockCategories, _category})
-                DropdownMenuItem(value: c, child: Text(c)),
-            ],
-            onChanged: (v) => setState(() => _category = v ?? _category),
-          ),
-          if (editing) ...[
+              decoration: const InputDecoration(labelText: 'Title'),
+            ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
-              initialValue: _status,
-              decoration: const InputDecoration(labelText: 'Status'),
+              initialValue: _category,
+              decoration: const InputDecoration(labelText: 'Category'),
               items: [
-                for (final s in nextStatuses(widget.block!.status))
-                  DropdownMenuItem(value: s, child: Text(s)),
+                for (final c in {...blockCategories, _category})
+                  DropdownMenuItem(value: c, child: Text(c)),
               ],
-              onChanged: (v) => setState(() => _status = v ?? _status),
+              onChanged: (v) => setState(() => _category = v ?? _category),
+            ),
+            if (editing) ...[
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _status,
+                decoration: const InputDecoration(labelText: 'Status'),
+                items: [
+                  for (final s in nextStatuses(widget.block!.status))
+                    DropdownMenuItem(value: s, child: Text(s)),
+                ],
+                onChanged: (v) => setState(() => _status = v ?? _status),
+              ),
+            ],
+            const SizedBox(height: 12),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Starts'),
+              subtitle: Text(
+                '${_start.year}-${_start.month}-${_start.day} ${hhmm(_start)}',
+              ),
+              onTap: () async {
+                final d = await _pick(_start);
+                if (d == null) return;
+                setState(() {
+                  final len = _end.difference(_start);
+                  _start = d;
+                  _end = d.add(len);
+                });
+              },
+            ),
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Ends'),
+              subtitle: Text(
+                '${_end.year}-${_end.month}-${_end.day} ${hhmm(_end)}',
+              ),
+              onTap: () async {
+                final d = await _pick(_end);
+                if (d != null) setState(() => _end = d);
+              },
+            ),
+            if (_error != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(
+                  _error!,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ),
+            Row(
+              children: [
+                if (editing)
+                  TextButton(
+                    onPressed: () async {
+                      final nav = Navigator.of(context);
+                      await ref
+                          .read(timeBlocksRepositoryProvider)
+                          .delete(widget.block!.id);
+                      nav.pop();
+                    },
+                    child: const Text('Delete'),
+                  ),
+                const Spacer(),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(onPressed: _save, child: const Text('Save')),
+              ],
             ),
           ],
-          const SizedBox(height: 12),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Starts'),
-            subtitle: Text('${_start.year}-${_start.month}-${_start.day} ${hhmm(_start)}'),
-            onTap: () async {
-              final d = await _pick(_start);
-              if (d == null) return;
-              setState(() {
-                final len = _end.difference(_start);
-                _start = d;
-                _end = d.add(len);
-              });
-            },
-          ),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: const Text('Ends'),
-            subtitle: Text('${_end.year}-${_end.month}-${_end.day} ${hhmm(_end)}'),
-            onTap: () async {
-              final d = await _pick(_end);
-              if (d != null) setState(() => _end = d);
-            },
-          ),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(_error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error)),
-            ),
-          Row(children: [
-            if (editing)
-              TextButton(
-                onPressed: () async {
-                  final nav = Navigator.of(context);
-                  await ref.read(timeBlocksRepositoryProvider).delete(widget.block!.id);
-                  nav.pop();
-                },
-                child: const Text('Delete'),
-              ),
-            const Spacer(),
-            TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel')),
-            FilledButton(onPressed: _save, child: const Text('Save')),
-          ]),
-        ]),
+        ),
       ),
     );
   }
@@ -182,10 +217,13 @@ class BlockTile extends ConsumerWidget {
 
   Future<void> _move(BuildContext context, WidgetRef ref, Duration by) async {
     final messenger = ScaffoldMessenger.of(context);
-    final r = await ref.read(timeBlocksRepositoryProvider).reschedule(
-        block.id, block.startsAt.add(by), block.endsAt.add(by));
+    final r = await ref
+        .read(timeBlocksRepositoryProvider)
+        .reschedule(block.id, block.startsAt.add(by), block.endsAt.add(by));
     if (r.overlaps.isNotEmpty) {
-      messenger.showSnackBar(SnackBar(content: Text(overlapMessage(r.overlaps))));
+      messenger.showSnackBar(
+        SnackBar(content: Text(overlapMessage(r.overlaps))),
+      );
     }
   }
 
@@ -194,12 +232,21 @@ class BlockTile extends ConsumerWidget {
     final done = block.status == 'complete';
     final off = block.status == 'skipped' || block.status == 'cancelled';
     return ListTile(
-      onTap: () => showTimeBlockEditor(context,
-          ws: block.workspaceId, day: dayOf(block.startsAt), block: block),
-      title: Text(block.title,
-          style: TextStyle(
-              decoration: (done || off) ? TextDecoration.lineThrough : null)),
-      subtitle: Text('${blockRange(block)} · ${block.category} · ${block.status}'),
+      onTap: () => showTimeBlockEditor(
+        context,
+        ws: block.workspaceId,
+        day: dayOf(block.startsAt),
+        block: block,
+      ),
+      title: Text(
+        block.title,
+        style: TextStyle(
+          decoration: (done || off) ? TextDecoration.lineThrough : null,
+        ),
+      ),
+      subtitle: Text(
+        '${blockRange(block)} · ${block.category} · ${block.status}',
+      ),
       trailing: PopupMenuButton<String>(
         tooltip: 'Move',
         onSelected: (v) => switch (v) {

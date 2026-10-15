@@ -33,7 +33,8 @@ const taskStatuses = [
 const taskPriorities = ['low', 'normal', 'high', 'critical'];
 
 /// A date picked by the user means "by the end of that local day".
-DateTime dueFromDate(DateTime d) => DateTime(d.year, d.month, d.day, 23, 59).toUtc();
+DateTime dueFromDate(DateTime d) =>
+    DateTime(d.year, d.month, d.day, 23, 59).toUtc();
 
 /// Local-first task access. Writes go to the local database and the outbox.
 class TasksRepository {
@@ -47,22 +48,29 @@ class TasksRepository {
   /// Overdue and due-today open tasks. "Today" ends at local midnight.
   Stream<List<Task>> watchToday(String ws) {
     final n = _clock.now().toLocal();
-    final endOfDay = DateTime(n.year, n.month, n.day + 1).subtract(
-        const Duration(milliseconds: 1));
+    final endOfDay = DateTime(
+      n.year,
+      n.month,
+      n.day + 1,
+    ).subtract(const Duration(milliseconds: 1));
     return _db.taskDao.watchDueBy(ws, endOfDay.toUtc());
   }
 
   /// Quick capture: a title is enough. The task lands in the Inbox.
   Future<void> capture(String ws, String title) => _db.taskDao.createWithOutbox(
-        id: newUuid7(now: _clock.now()),
-        workspaceId: ws,
-        title: title.trim(),
-        mutationId: newUuid7(now: _clock.now()),
-        now: _clock.now(),
-      );
+    id: newUuid7(now: _clock.now()),
+    workspaceId: ws,
+    title: title.trim(),
+    mutationId: newUuid7(now: _clock.now()),
+    now: _clock.now(),
+  );
 
-  Future<void> setDone(String id, bool done) => _change(
-      id, {'status': done ? 'complete' : 'planned'});
+  Future<void> setDone(String id, bool done) =>
+      _change(id, {'status': done ? 'complete' : 'planned'});
+
+  /// Moves the due time; reminders follow (Spec 4.5).
+  Future<void> reschedule(String id, DateTime? due) =>
+      _change(id, {'due_at': due});
 
   Future<void> archive(String id) => _change(id, {'status': 'archived'});
 
@@ -84,7 +92,9 @@ class TasksRepository {
 
   /// Saves only the fields that differ from [before]. Returns false when nothing changed.
   Future<bool> edit(Task before, TaskEdit e) async {
-    final desc = (e.description?.trim().isEmpty ?? true) ? null : e.description!.trim();
+    final desc = (e.description?.trim().isEmpty ?? true)
+        ? null
+        : e.description!.trim();
     final changes = <String, Object?>{
       if (e.title.trim() != before.title) 'title': e.title.trim(),
       if (desc != before.description) 'description': desc,

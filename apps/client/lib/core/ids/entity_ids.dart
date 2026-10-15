@@ -2,9 +2,13 @@ import 'dart:math';
 
 /// Typed ID so a task ID cannot be passed where a project ID is expected.
 extension type const TaskId(String value) {}
+
 extension type const ProjectId(String value) {}
+
 extension type const WorkspaceId(String value) {}
+
 extension type const MilestoneId(String value) {}
+
 extension type const MutationId(String value) {}
 
 final _random = Random.secure();

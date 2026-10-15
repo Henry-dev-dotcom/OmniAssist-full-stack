@@ -23,18 +23,9 @@ class Projects extends Table with SyncedColumns {
   IntColumn get progressValue => integer().withDefault(const Constant(0))();
 }
 
-class Milestones extends Table with SyncedColumns {
-  TextColumn get projectId => text().references(Projects, #id)();
-  TextColumn get parentId => text().nullable()();
-  TextColumn get title => text().withLength(min: 1, max: 240)();
-  TextColumn get status => text().withDefault(const Constant('not_started'))();
-  DateTimeColumn get dueAt => dateTime().nullable()();
-  IntColumn get progressValue => integer().withDefault(const Constant(0))();
-}
-
 class Tasks extends Table with SyncedColumns {
   TextColumn get projectId => text().nullable().references(Projects, #id)();
-  TextColumn get milestoneId => text().nullable().references(Milestones, #id)();
+  TextColumn get milestoneId => text().nullable()(); // a Records row (v2)
   TextColumn get parentTaskId => text().nullable()();
   TextColumn get title => text().withLength(min: 1, max: 240)();
   TextColumn get description => text().nullable()();

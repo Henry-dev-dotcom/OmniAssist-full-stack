@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../app/router.dart';
+import '../features/sync/sync_status.dart';
 
 class NavDestination {
   const NavDestination(this.label, this.icon, this.path);
@@ -50,13 +51,27 @@ class AppScaffold extends StatelessWidget {
               ),
             ),
             const VerticalDivider(width: 1),
-            Expanded(child: child),
+            Expanded(
+              child: Column(
+                children: [
+                  const SyncBanner(),
+                  Expanded(child: child),
+                ],
+              ),
+            ),
           ],
         ),
       );
     }
     return Scaffold(
-      body: SafeArea(child: child),
+      body: SafeArea(
+        child: Column(
+          children: [
+            const SyncBanner(),
+            Expanded(child: child),
+          ],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _index,
         onDestinationSelected: (i) => _go(context, i),

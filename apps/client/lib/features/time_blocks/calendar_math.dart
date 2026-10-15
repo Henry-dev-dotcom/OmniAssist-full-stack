@@ -6,10 +6,12 @@ DateTime dayOf(DateTime t) {
   return DateTime(l.year, l.month, l.day);
 }
 
-DateTime addDays(DateTime day, int n) => DateTime(day.year, day.month, day.day + n);
+DateTime addDays(DateTime day, int n) =>
+    DateTime(day.year, day.month, day.day + n);
 
 /// Monday of the week that holds [day].
-DateTime weekStart(DateTime day) => addDays(dayOf(day), -(dayOf(day).weekday - 1));
+DateTime weekStart(DateTime day) =>
+    addDays(dayOf(day), -(dayOf(day).weekday - 1));
 
 DateTime monthStart(DateTime day) => DateTime(day.year, day.month);
 
@@ -27,7 +29,10 @@ List<TimeBlock> blocksOnDay(Iterable<TimeBlock> all, DateTime day) {
   final s = dayOf(day);
   final e = addDays(s, 1);
   return all
-      .where((b) => b.startsAt.toLocal().isBefore(e) && b.endsAt.toLocal().isAfter(s))
+      .where(
+        (b) =>
+            b.startsAt.toLocal().isBefore(e) && b.endsAt.toLocal().isAfter(s),
+      )
       .toList()
     ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
 }
@@ -41,12 +46,16 @@ String blockRange(TimeBlock b) => '${hhmm(b.startsAt)} – ${hhmm(b.endsAt)}';
 
 /// First free slot of [length] on [day] from [from] (local), skipping busy blocks.
 DateTime nextFreeStart(
-    Iterable<TimeBlock> dayBlocks, DateTime from, Duration length) {
+  Iterable<TimeBlock> dayBlocks,
+  DateTime from,
+  Duration length,
+) {
   var at = from;
-  final busy = dayBlocks
-      .where((b) => b.status != 'skipped' && b.status != 'cancelled')
-      .toList()
-    ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
+  final busy =
+      dayBlocks
+          .where((b) => b.status != 'skipped' && b.status != 'cancelled')
+          .toList()
+        ..sort((a, b) => a.startsAt.compareTo(b.startsAt));
   for (final b in busy) {
     final bs = b.startsAt.toLocal(), be = b.endsAt.toLocal();
     if (!at.add(length).isAfter(bs)) break;

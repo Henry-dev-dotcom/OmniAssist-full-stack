@@ -21,7 +21,7 @@ class SyncOutcome {
 /// Safe to call often: concurrent calls share one run.
 class SyncEngine {
   SyncEngine(this._db, this._api, this._clock, {Random? random})
-      : _random = random ?? Random();
+    : _random = random ?? Random();
 
   final AppDatabase _db;
   final ApiClient _api;
@@ -65,8 +65,9 @@ class SyncEngine {
         }) as Map<String, dynamic>;
       } on AppError catch (e) {
         if (_retryable(e)) {
-          final next =
-              _clock.now().add(retryDelay(batch.first.attemptCount + 1, random: _random));
+          final next = _clock.now().add(
+            retryDelay(batch.first.attemptCount + 1, random: _random),
+          );
           await dao.markAttemptFailed(batch, e.code.wire, next);
         }
         rethrow;
@@ -83,7 +84,9 @@ class SyncEngine {
         handled++;
       }
       total += handled;
-      if (handled == 0) return total; // server returned nothing usable: stop, no loop
+      if (handled == 0) {
+        return total; // server returned nothing usable: stop, no loop
+      }
     }
   }
 
@@ -92,8 +95,10 @@ class SyncEngine {
     var total = 0;
     while (true) {
       final cursor = await dao.cursorFor(device);
-      final data = await _api.get('/sync/pull',
-          query: {'cursor': '$cursor'}) as Map<String, dynamic>;
+      final data = await _api.get(
+        '/sync/pull',
+        query: {'cursor': '$cursor'},
+      ) as Map<String, dynamic>;
       final changes = (data['changes'] as List).cast<Map<String, dynamic>>();
       await dao.applyPulledPage(
         deviceId: device,
@@ -113,12 +118,12 @@ class SyncEngine {
       e.code == ErrorCode.internalError;
 
   static Map<String, dynamic> _wire(OutboxMutation m) => {
-        'mutation_id': m.mutationId,
-        'workspace_id': m.workspaceId,
-        'entity_type': m.entityType,
-        'entity_id': m.entityId,
-        'operation': m.operation,
-        'base_version': m.baseVersion,
-        'changes': jsonDecode(m.payload),
-      };
+    'mutation_id': m.mutationId,
+    'workspace_id': m.workspaceId,
+    'entity_type': m.entityType,
+    'entity_id': m.entityId,
+    'operation': m.operation,
+    'base_version': m.baseVersion,
+    'changes': jsonDecode(m.payload),
+  };
 }

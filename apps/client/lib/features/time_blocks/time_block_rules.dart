@@ -2,8 +2,21 @@ import '../../database/app_database.dart';
 
 /// Mirrors the server rules (apps/api/src/domain/time_blocks/service.py), so the
 /// UI can explain a problem before sync does.
-const blockStatuses = ['planned', 'in_progress', 'complete', 'skipped', 'cancelled'];
-const blockCategories = ['focus', 'meeting', 'admin', 'break', 'personal', 'other'];
+const blockStatuses = [
+  'planned',
+  'in_progress',
+  'complete',
+  'skipped',
+  'cancelled',
+];
+const blockCategories = [
+  'focus',
+  'meeting',
+  'admin',
+  'break',
+  'personal',
+  'other',
+];
 
 const _allowed = <String, Set<String>>{
   'planned': {'in_progress', 'complete', 'skipped', 'cancelled'},
@@ -14,8 +27,7 @@ const _allowed = <String, Set<String>>{
 };
 
 /// Statuses a block with [current] can move to, including staying put.
-List<String> nextStatuses(String current) =>
-    [current, ...?_allowed[current]];
+List<String> nextStatuses(String current) => [current, ...?_allowed[current]];
 
 bool canTransition(String from, String to) =>
     from == to || (_allowed[from]?.contains(to) ?? false);
@@ -33,13 +45,12 @@ List<TimeBlock> overlapping(
   DateTime end,
   Iterable<TimeBlock> others, {
   String? excludeId,
-}) =>
-    [
-      for (final b in others)
-        if (b.id != excludeId &&
-            b.deletedAt == null &&
-            !_free.contains(b.status) &&
-            b.startsAt.isBefore(end) &&
-            b.endsAt.isAfter(start))
-          b,
-    ];
+}) => [
+  for (final b in others)
+    if (b.id != excludeId &&
+        b.deletedAt == null &&
+        !_free.contains(b.status) &&
+        b.startsAt.isBefore(end) &&
+        b.endsAt.isAfter(start))
+      b,
+];

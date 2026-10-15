@@ -15,7 +15,9 @@ final _inboxProvider = StreamProvider.autoDispose<List<Task>>((ref) {
       : ref.watch(tasksRepositoryProvider).watchInbox(ws);
 });
 
-final _activeProjectsProvider = StreamProvider.autoDispose<List<Project>>((ref) {
+final _activeProjectsProvider = StreamProvider.autoDispose<List<Project>>((
+  ref,
+) {
   final ws = ref.watch(authControllerProvider).value?.workspaceId;
   return ws == null
       ? const Stream.empty()
@@ -28,8 +30,9 @@ class InboxScreen extends ConsumerWidget {
   Future<void> _move(BuildContext context, WidgetRef ref, Task t) async {
     final projects = ref.read(_activeProjectsProvider).value ?? const [];
     if (projects.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Create a project first.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Create a project first.')));
       return;
     }
     final picked = await showDialog<String>(
@@ -39,7 +42,9 @@ class InboxScreen extends ConsumerWidget {
         children: [
           for (final p in projects)
             SimpleDialogOption(
-                onPressed: () => Navigator.pop(context, p.id), child: Text(p.name)),
+              onPressed: () => Navigator.pop(context, p.id),
+              child: Text(p.name),
+            ),
         ],
       ),
     );
@@ -57,33 +62,45 @@ class InboxScreen extends ConsumerWidget {
       body: inbox.when(
         loading: () => const LoadingView(),
         error: (_, _) => const EmptyStateView(
-            title: 'Cannot load the Inbox',
-            message: 'Restart the app. Your data is safe.'),
+          title: 'Cannot load the Inbox',
+          message: 'Restart the app. Your data is safe.',
+        ),
         data: (rows) => rows.isEmpty
             ? const EmptyStateView(
                 title: 'Inbox is empty',
-                message: 'Tap + to capture a task. Sort it later.')
-            : ListView(children: [
-                for (final t in rows)
-                  TaskTile(
-                    task: t,
-                    trailing: PopupMenuButton<String>(
-                      tooltip: 'Sort ${t.title}',
-                      onSelected: (v) async {
-                        if (v == 'move') {
-                          await _move(context, ref, t);
-                        } else {
-                          await ref.read(tasksRepositoryProvider).archive(t.id);
-                          ref.read(syncControllerProvider.notifier).syncNow();
-                        }
-                      },
-                      itemBuilder: (_) => const [
-                        PopupMenuItem(value: 'move', child: Text('Move to project')),
-                        PopupMenuItem(value: 'archive', child: Text('Archive')),
-                      ],
+                message: 'Tap + to capture a task. Sort it later.',
+              )
+            : ListView(
+                children: [
+                  for (final t in rows)
+                    TaskTile(
+                      task: t,
+                      trailing: PopupMenuButton<String>(
+                        tooltip: 'Sort ${t.title}',
+                        onSelected: (v) async {
+                          if (v == 'move') {
+                            await _move(context, ref, t);
+                          } else {
+                            await ref
+                                .read(tasksRepositoryProvider)
+                                .archive(t.id);
+                            ref.read(syncControllerProvider.notifier).syncNow();
+                          }
+                        },
+                        itemBuilder: (_) => const [
+                          PopupMenuItem(
+                            value: 'move',
+                            child: Text('Move to project'),
+                          ),
+                          PopupMenuItem(
+                            value: 'archive',
+                            child: Text('Archive'),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-              ]),
+                ],
+              ),
       ),
     );
   }

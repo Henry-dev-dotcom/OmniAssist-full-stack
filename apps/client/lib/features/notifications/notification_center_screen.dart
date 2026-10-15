@@ -23,7 +23,8 @@ final _centerProvider = StreamProvider.autoDispose<List<Reminder>>((ref) {
 });
 
 final _osPermittedProvider = FutureProvider.autoDispose<bool>(
-    (ref) => ref.watch(notificationRepositoryProvider).osPermitted());
+  (ref) => ref.watch(notificationRepositoryProvider).osPermitted(),
+);
 
 /// Unread count for a badge on the navigation bar.
 final unreadCountProvider = StreamProvider.autoDispose<int>((ref) {
@@ -37,7 +38,10 @@ final unreadCountProvider = StreamProvider.autoDispose<int>((ref) {
 final reminderTickerProvider = Provider<void>((ref) {
   final repo = ref.watch(notificationRepositoryProvider);
   repo.deliverDue();
-  final timer = Timer.periodic(const Duration(seconds: 30), (_) => repo.deliverDue());
+  final timer = Timer.periodic(
+    const Duration(seconds: 30),
+    (_) => repo.deliverDue(),
+  );
   ref.onDispose(timer.cancel);
 });
 
@@ -50,63 +54,80 @@ class NotificationCenterScreen extends ConsumerWidget {
     final unreadOnly = ref.watch(_unreadOnlyProvider);
     final permitted = ref.watch(_osPermittedProvider).value ?? true;
     return Scaffold(
-      appBar: AppBar(title: const Text('Notifications'), actions: [
-        IconButton(
-          tooltip: 'Quiet hours',
-          icon: const Icon(Icons.bedtime_outlined),
-          onPressed: () => showModalBottomSheet<void>(
-              context: context, builder: (_) => const _QuietHoursSheet()),
-        ),
-      ]),
-      body: Column(children: [
-        if (!permitted)
-          const MaterialBanner(
-            leading: Icon(Icons.notifications_off_outlined),
-            content: Text('System notifications are off. Reminders still show here.'),
-            actions: [SizedBox.shrink()],
+      appBar: AppBar(
+        title: const Text('Notifications'),
+        actions: [
+          IconButton(
+            tooltip: 'Quiet hours',
+            icon: const Icon(Icons.bedtime_outlined),
+            onPressed: () => showModalBottomSheet<void>(
+              context: context,
+              builder: (_) => const _QuietHoursSheet(),
+            ),
           ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: Row(children: [
-            ChoiceChip(
-              label: const Text('All'),
-              selected: !unreadOnly,
-              onSelected: (_) => ref.read(_unreadOnlyProvider.notifier).state = false,
+        ],
+      ),
+      body: Column(
+        children: [
+          if (!permitted)
+            const MaterialBanner(
+              leading: Icon(Icons.notifications_off_outlined),
+              content: Text(
+                'System notifications are off. Reminders still show here.',
+              ),
+              actions: [SizedBox.shrink()],
             ),
-            const SizedBox(width: 8),
-            ChoiceChip(
-              label: const Text('Unread'),
-              selected: unreadOnly,
-              onSelected: (_) => ref.read(_unreadOnlyProvider.notifier).state = true,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
+              children: [
+                ChoiceChip(
+                  label: const Text('All'),
+                  selected: !unreadOnly,
+                  onSelected: (_) =>
+                      ref.read(_unreadOnlyProvider.notifier).state = false,
+                ),
+                const SizedBox(width: 8),
+                ChoiceChip(
+                  label: const Text('Unread'),
+                  selected: unreadOnly,
+                  onSelected: (_) =>
+                      ref.read(_unreadOnlyProvider.notifier).state = true,
+                ),
+              ],
             ),
-          ]),
-        ),
-        Expanded(
-          child: rows.when(
-            loading: () => const LoadingView(),
-            error: (_, _) => const EmptyStateView(
+          ),
+          Expanded(
+            child: rows.when(
+              loading: () => const LoadingView(),
+              error: (_, _) => const EmptyStateView(
                 title: 'Cannot load notifications',
-                message: 'Restart the app. Your data is safe.'),
-            data: (list) => list.isEmpty
-                ? EmptyStateView(
-                    title: unreadOnly ? 'All caught up' : 'No notifications yet',
-                    message: 'Reminders you set on tasks show up here.')
-                : ListView(children: [for (final r in list) _Row(r)]),
+                message: 'Restart the app. Your data is safe.',
+              ),
+              data: (list) => list.isEmpty
+                  ? EmptyStateView(
+                      title: unreadOnly
+                          ? 'All caught up'
+                          : 'No notifications yet',
+                      message: 'Reminders you set on tasks show up here.',
+                    )
+                  : ListView(children: [for (final r in list) _Row(r)]),
+            ),
           ),
-        ),
-      ]),
+        ],
+      ),
     );
   }
 }
 
 String statusLabel(Reminder r) => switch (r.status) {
-      'sent' => 'Due',
-      'snoozed' => 'Snoozed until ${hhmm(r.snoozedUntil ?? r.remindAt)}',
-      'failed' => 'Could not deliver',
-      'dismissed' => 'Dismissed',
-      'acted_on' => 'Done',
-      _ => r.status,
-    };
+  'sent' => 'Due',
+  'snoozed' => 'Snoozed until ${hhmm(r.snoozedUntil ?? r.remindAt)}',
+  'failed' => 'Could not deliver',
+  'dismissed' => 'Dismissed',
+  'acted_on' => 'Done',
+  _ => r.status,
+};
 
 class _Row extends ConsumerWidget {
   const _Row(this.r);
@@ -115,12 +136,22 @@ class _Row extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final repo = ref.read(notificationRepositoryProvider);
-    final unread = r.readAt == null && (r.status == 'sent' || r.status == 'failed');
-    final canAct = r.status == 'sent' || r.status == 'snoozed' || r.status == 'failed';
+    final unread =
+        r.readAt == null && (r.status == 'sent' || r.status == 'failed');
+    final canAct =
+        r.status == 'sent' || r.status == 'snoozed' || r.status == 'failed';
     return ListTile(
-      leading: Icon(r.urgency == 'critical' ? Icons.priority_high : Icons.notifications_outlined),
-      title: Text(r.title,
-          style: TextStyle(fontWeight: unread ? FontWeight.w600 : FontWeight.w400)),
+      leading: Icon(
+        r.urgency == 'critical'
+            ? Icons.priority_high
+            : Icons.notifications_outlined,
+      ),
+      title: Text(
+        r.title,
+        style: TextStyle(
+          fontWeight: unread ? FontWeight.w600 : FontWeight.w400,
+        ),
+      ),
       subtitle: Text('${statusLabel(r)} · ${offsetLabel(r.offsetSpec)}'),
       onTap: unread ? () => repo.markRead(r.id) : null,
       trailing: !canAct
@@ -162,9 +193,9 @@ class _QuietHoursSheetState extends ConsumerState<_QuietHoursSheet> {
     ref.read(notificationRepositoryProvider).quietHours().then((q) {
       if (mounted) {
         setState(() {
-        _q = q;
-        _loaded = true;
-      });
+          _q = q;
+          _loaded = true;
+        });
       }
     });
   }
@@ -173,49 +204,64 @@ class _QuietHoursSheetState extends ConsumerState<_QuietHoursSheet> {
     final q = _q ?? defaultQuiet;
     final m = start ? q.startMinutes : q.endMinutes;
     final t = await showTimePicker(
-        context: context, initialTime: TimeOfDay(hour: m ~/ 60, minute: m % 60));
+      context: context,
+      initialTime: TimeOfDay(hour: m ~/ 60, minute: m % 60),
+    );
     if (t == null) return;
     final v = t.hour * 60 + t.minute;
-    final next = start ? QuietHours(v, q.endMinutes) : QuietHours(q.startMinutes, v);
+    final next = start
+        ? QuietHours(v, q.endMinutes)
+        : QuietHours(q.startMinutes, v);
     setState(() => _q = next);
     await ref.read(notificationRepositoryProvider).setQuietHours(next);
   }
 
-  String _fmt(int m) => '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
+  String _fmt(int m) =>
+      '${(m ~/ 60).toString().padLeft(2, '0')}:${(m % 60).toString().padLeft(2, '0')}';
 
   @override
   Widget build(BuildContext context) {
     final q = _q;
     return Padding(
       padding: const EdgeInsets.all(16),
-      child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Quiet hours', style: Theme.of(context).textTheme.titleLarge),
-        const Text('Reminders wait until quiet hours end. Critical reminders still fire.'),
-        SwitchListTile(
-          contentPadding: EdgeInsets.zero,
-          title: const Text('Use quiet hours'),
-          value: q != null,
-          onChanged: !_loaded
-              ? null
-              : (on) async {
-                  final next = on ? defaultQuiet : null;
-                  setState(() => _q = next);
-                  await ref.read(notificationRepositoryProvider).setQuietHours(next);
-                },
-        ),
-        if (q != null) ...[
-          ListTile(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Quiet hours', style: Theme.of(context).textTheme.titleLarge),
+          const Text(
+            'Reminders wait until quiet hours end. Critical reminders still fire.',
+          ),
+          SwitchListTile(
+            contentPadding: EdgeInsets.zero,
+            title: const Text('Use quiet hours'),
+            value: q != null,
+            onChanged: !_loaded
+                ? null
+                : (on) async {
+                    final next = on ? defaultQuiet : null;
+                    setState(() => _q = next);
+                    await ref
+                        .read(notificationRepositoryProvider)
+                        .setQuietHours(next);
+                  },
+          ),
+          if (q != null) ...[
+            ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('From'),
               trailing: Text(_fmt(q.startMinutes)),
-              onTap: () => _pick(true)),
-          ListTile(
+              onTap: () => _pick(true),
+            ),
+            ListTile(
               contentPadding: EdgeInsets.zero,
               title: const Text('Until'),
               trailing: Text(_fmt(q.endMinutes)),
-              onTap: () => _pick(false)),
+              onTap: () => _pick(false),
+            ),
+          ],
         ],
-      ]),
+      ),
     );
   }
 }

@@ -16,7 +16,7 @@ enum ErrorCode {
 
   /// Unknown codes from a newer server map to [internalError].
   static ErrorCode fromWire(String? value) => ErrorCode.values.firstWhere(
-        (c) => c.wire == value,
-        orElse: () => ErrorCode.internalError,
-      );
+    (c) => c.wire == value,
+    orElse: () => ErrorCode.internalError,
+  );
 }

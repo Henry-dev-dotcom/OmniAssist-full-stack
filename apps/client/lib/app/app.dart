@@ -14,9 +14,9 @@ class OmniAssistApp extends ConsumerWidget {
     ref.watch(syncControllerProvider); // keeps background sync alive
     ref.watch(reminderTickerProvider); // fires due reminders while open
     return MaterialApp.router(
-        title: 'OmniAssist',
-        theme: buildTheme(),
-        routerConfig: ref.watch(routerProvider),
-      );
+      title: 'OmniAssist',
+      theme: buildTheme(),
+      routerConfig: ref.watch(routerProvider),
+    );
   }
 }

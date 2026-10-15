@@ -17,7 +17,7 @@ abstract interface class TokenSource {
 /// including network loss, so callers handle one error type.
 class ApiClient {
   ApiClient({required this.baseUrl, required http.Client client, this.tokens})
-      : _http = client;
+    : _http = client;
 
   final String baseUrl;
   final http.Client _http;
@@ -73,8 +73,14 @@ class ApiClient {
         !retried &&
         tokens != null &&
         await tokens!.refresh()) {
-      return _send(method, path,
-          query: query, body: body, auth: auth, retried: true);
+      return _send(
+        method,
+        path,
+        query: query,
+        body: body,
+        auth: auth,
+        retried: true,
+      );
     }
     throw err;
   }

@@ -19,8 +19,10 @@ import 'router.dart';
 
 final clockProvider = Provider<AppClock>((_) => const SystemClock());
 
-const _apiBase = String.fromEnvironment('API_BASE_URL',
-    defaultValue: 'http://localhost:8000/api/v1');
+const _apiBase = String.fromEnvironment(
+  'API_BASE_URL',
+  defaultValue: 'http://localhost:8000/api/v1',
+);
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase.open();
@@ -31,32 +33,56 @@ final databaseProvider = Provider<AppDatabase>((ref) {
 final tokenStoreProvider = Provider<TokenStore>((_) => SecureTokenStore());
 
 final apiClientProvider = Provider<ApiClient>(
-    (_) => ApiClient(baseUrl: _apiBase, client: http.Client()));
+  (_) => ApiClient(baseUrl: _apiBase, client: http.Client()),
+);
 
-final authRepositoryProvider = Provider<AuthRepository>((ref) =>
-    AuthRepository(ref.watch(apiClientProvider), ref.watch(tokenStoreProvider)));
+final authRepositoryProvider = Provider<AuthRepository>(
+  (ref) => AuthRepository(
+    ref.watch(apiClientProvider),
+    ref.watch(tokenStoreProvider),
+  ),
+);
 
-final projectsRepositoryProvider = Provider<ProjectsRepository>((ref) =>
-    ProjectsRepository(ref.watch(databaseProvider), ref.watch(clockProvider)));
+final projectsRepositoryProvider = Provider<ProjectsRepository>(
+  (ref) =>
+      ProjectsRepository(ref.watch(databaseProvider), ref.watch(clockProvider)),
+);
 
 /// Swap this override once a platform notification plugin is chosen.
-final notificationGatewayProvider =
-    Provider<NotificationGateway>((_) => const NoopGateway());
+final notificationGatewayProvider = Provider<NotificationGateway>(
+  (_) => const NoopGateway(),
+);
 
-final notificationRepositoryProvider = Provider<NotificationRepository>((ref) =>
-    NotificationRepository(ref.watch(databaseProvider), ref.watch(clockProvider),
-        ref.watch(notificationGatewayProvider)));
-
-final tasksRepositoryProvider = Provider<TasksRepository>((ref) => TasksRepository(
+final notificationRepositoryProvider = Provider<NotificationRepository>(
+  (ref) => NotificationRepository(
     ref.watch(databaseProvider),
     ref.watch(clockProvider),
-    ref.watch(notificationRepositoryProvider)));
+    ref.watch(notificationGatewayProvider),
+  ),
+);
 
-final timeBlocksRepositoryProvider = Provider<TimeBlocksRepository>((ref) =>
-    TimeBlocksRepository(ref.watch(databaseProvider), ref.watch(clockProvider)));
+final tasksRepositoryProvider = Provider<TasksRepository>(
+  (ref) => TasksRepository(
+    ref.watch(databaseProvider),
+    ref.watch(clockProvider),
+    ref.watch(notificationRepositoryProvider),
+  ),
+);
 
-final syncEngineProvider = Provider<SyncEngine>((ref) => SyncEngine(
-    ref.watch(databaseProvider), ref.watch(apiClientProvider), ref.watch(clockProvider)));
+final timeBlocksRepositoryProvider = Provider<TimeBlocksRepository>(
+  (ref) => TimeBlocksRepository(
+    ref.watch(databaseProvider),
+    ref.watch(clockProvider),
+  ),
+);
+
+final syncEngineProvider = Provider<SyncEngine>(
+  (ref) => SyncEngine(
+    ref.watch(databaseProvider),
+    ref.watch(apiClientProvider),
+    ref.watch(clockProvider),
+  ),
+);
 
 /// Re-evaluates the router redirect when auth state changes.
 final routerProvider = Provider<GoRouter>((ref) {

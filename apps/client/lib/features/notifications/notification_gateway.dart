@@ -3,7 +3,11 @@
 abstract interface class NotificationGateway {
   /// False when the user denied (or has not yet granted) system notifications.
   Future<bool> isPermitted();
-  Future<void> show({required String id, required String title, required String urgency});
+  Future<void> show({
+    required String id,
+    required String title,
+    required String urgency,
+  });
 }
 
 class NoopGateway implements NotificationGateway {
@@ -11,5 +15,9 @@ class NoopGateway implements NotificationGateway {
   @override
   Future<bool> isPermitted() async => false;
   @override
-  Future<void> show({required String id, required String title, required String urgency}) async {}
+  Future<void> show({
+    required String id,
+    required String title,
+    required String urgency,
+  }) async {}
 }

@@ -7,24 +7,33 @@ import '../../database/app_database.dart';
 import '../auth/auth_controller.dart';
 import '../sync/sync_controller.dart';
 
+/// Asks for a title and saves it to the Inbox locally; no network needed (Spec 4.3).
+Future<void> captureTask(BuildContext context, WidgetRef ref) async {
+  final ws = ref.read(authControllerProvider).value?.workspaceId;
+  if (ws == null) return;
+  final title = await showDialog<String>(
+    context: context,
+    builder: (_) => const _CaptureDialog(),
+  );
+  if (title == null) return;
+  await ref.read(tasksRepositoryProvider).capture(ws, title);
+  if (context.mounted) {
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Saved on this device')));
+  }
+  ref.read(syncControllerProvider.notifier).syncNow();
+}
+
 /// Floating "+" shown on every primary screen (Spec 4.3: capture from anywhere).
 class QuickCaptureButton extends ConsumerWidget {
   const QuickCaptureButton({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) => FloatingActionButton(
-        tooltip: 'Quick capture',
-        onPressed: () async {
-          final ws = ref.read(authControllerProvider).value?.workspaceId;
-          if (ws == null) return;
-          final title = await showDialog<String>(
-              context: context, builder: (_) => const _CaptureDialog());
-          if (title == null) return;
-          await ref.read(tasksRepositoryProvider).capture(ws, title);
-          ref.read(syncControllerProvider.notifier).syncNow();
-        },
-        child: const Icon(Icons.add),
-      );
+    tooltip: 'Quick capture',
+    onPressed: () => captureTask(context, ref),
+    child: const Icon(Icons.add),
+  );
 }
 
 class _CaptureDialog extends StatefulWidget {
@@ -53,21 +62,26 @@ class _CaptureDialogState extends State<_CaptureDialog> {
 
   @override
   Widget build(BuildContext context) => AlertDialog(
-        title: const Text('Quick capture'),
-        content: TextField(
-          controller: _title,
-          autofocus: true,
-          maxLength: 240,
-          textInputAction: TextInputAction.done,
-          onSubmitted: (_) => _save(),
-          decoration: InputDecoration(labelText: 'What needs doing?', errorText: _error),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-          FilledButton(onPressed: _save, child: const Text('Add to Inbox')),
-        ],
-      );
+    title: const Text('Quick capture'),
+    content: TextField(
+      controller: _title,
+      autofocus: true,
+      maxLength: 240,
+      textInputAction: TextInputAction.done,
+      onSubmitted: (_) => _save(),
+      decoration: InputDecoration(
+        labelText: 'What needs doing?',
+        errorText: _error,
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(onPressed: _save, child: const Text('Add to Inbox')),
+    ],
+  );
 }
 
 /// One task row with a completion checkbox.
@@ -82,18 +96,24 @@ class TaskTile extends ConsumerWidget {
     return ListTile(
       leading: Checkbox(
         value: done,
-        semanticLabel: done ? 'Mark ${task.title} not done' : 'Mark ${task.title} done',
+        semanticLabel: done
+            ? 'Mark ${task.title} not done'
+            : 'Mark ${task.title} done',
         onChanged: (v) async {
           await ref.read(tasksRepositoryProvider).setDone(task.id, v ?? false);
           ref.read(syncControllerProvider.notifier).syncNow();
         },
       ),
-      title: Text(task.title,
-          style: done
-              ? const TextStyle(decoration: TextDecoration.lineThrough)
-              : null),
+      title: Text(
+        task.title,
+        style: done
+            ? const TextStyle(decoration: TextDecoration.lineThrough)
+            : null,
+      ),
       onTap: () => context.push('/app/tasks/${task.id}'),
-      subtitle: task.syncState == 'synced' ? null : const Text('Waiting to sync'),
+      subtitle: task.syncState == 'synced'
+          ? null
+          : const Text('Waiting to sync'),
       trailing: trailing,
     );
   }

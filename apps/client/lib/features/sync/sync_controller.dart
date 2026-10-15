@@ -40,9 +40,13 @@ class SyncController extends Notifier<SyncUiState> {
     state = out.ok
         ? SyncUiState(lastSyncAt: ref.read(clockProvider).now())
         : SyncUiState(
-            phase: SyncPhase.failed, error: out.error, lastSyncAt: state.lastSyncAt);
+            phase: SyncPhase.failed,
+            error: out.error,
+            lastSyncAt: state.lastSyncAt,
+          );
   }
 }
 
-final syncControllerProvider =
-    NotifierProvider<SyncController, SyncUiState>(SyncController.new);
+final syncControllerProvider = NotifierProvider<SyncController, SyncUiState>(
+  SyncController.new,
+);

@@ -27,12 +27,19 @@ class TimeBlocksRepository {
   Future<TimeBlock?> byId(String id) => _db.timeBlockDao.byId(id);
 
   Future<List<TimeBlock>> overlapsFor(
-          String ws, DateTime start, DateTime end, {String? excludeId}) async =>
-      overlapping(start, end, await _db.timeBlockDao.inRange(ws, start, end),
-          excludeId: excludeId);
+    String ws,
+    DateTime start,
+    DateTime end, {
+    String? excludeId,
+  }) async => overlapping(
+    start,
+    end,
+    await _db.timeBlockDao.inRange(ws, start, end),
+    excludeId: excludeId,
+  );
 
-  Never _invalid(String message) => throw AppError(
-      code: ErrorCode.validationError, message: message);
+  Never _invalid(String message) =>
+      throw AppError(code: ErrorCode.validationError, message: message);
 
   Future<BlockSaved> create({
     required String ws,
@@ -64,8 +71,11 @@ class TimeBlocksRepository {
   }
 
   /// Moves a block. Works offline: the view updates now and sync follows.
-  Future<BlockSaved> reschedule(String id, DateTime startsAt, DateTime endsAt) =>
-      edit(id, startsAt: startsAt, endsAt: endsAt);
+  Future<BlockSaved> reschedule(
+    String id,
+    DateTime startsAt,
+    DateTime endsAt,
+  ) => edit(id, startsAt: startsAt, endsAt: endsAt);
 
   /// Saves only the fields that changed. Null arguments mean "leave as is".
   Future<BlockSaved> edit(
@@ -85,8 +95,9 @@ class TimeBlocksRepository {
     if (title != null && title.trim().isEmpty) _invalid('Enter a title.');
     if (status != null && !canTransition(b.status, status)) {
       throw AppError(
-          code: ErrorCode.domainRuleViolation,
-          message: 'A ${b.status} block cannot become $status.');
+        code: ErrorCode.domainRuleViolation,
+        message: 'A ${b.status} block cannot become $status.',
+      );
     }
     final changes = <String, Object?>{
       if (title != null && title.trim() != b.title) 'title': title.trim(),
@@ -108,5 +119,8 @@ class TimeBlocksRepository {
   }
 
   Future<void> delete(String id) => _db.timeBlockDao.deleteWithOutbox(
-      id: id, mutationId: newUuid7(now: _clock.now()), now: _clock.now());
+    id: id,
+    mutationId: newUuid7(now: _clock.now()),
+    now: _clock.now(),
+  );
 }

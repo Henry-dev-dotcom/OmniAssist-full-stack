@@ -9,28 +9,36 @@ const urgencies = ['low', 'normal', 'high', 'critical'];
 const closedTaskStates = {'complete', 'cancelled', 'archived'};
 
 bool isValidOffset(String spec) {
-  if (reminderPresets.containsKey(spec) || _morning.containsKey(spec)) return true;
+  if (reminderPresets.containsKey(spec) || _morning.containsKey(spec)) {
+    return true;
+  }
   if (!spec.startsWith('custom:')) return false;
   final m = int.tryParse(spec.substring(7));
   return m != null && m >= 0 && m <= maxCustomMinutes;
 }
 
 String offsetLabel(String spec) => switch (spec) {
-      'at_due' => 'When due',
-      '15m' => '15 minutes before',
-      '1h' => '1 hour before',
-      '1d' => '1 day before',
-      'morning_of' => '9:00 on the day',
-      'morning_before' => '9:00 the day before',
-      _ => spec.startsWith('custom:') ? '${spec.substring(7)} minutes before' : spec,
-    };
+  'at_due' => 'When due',
+  '15m' => '15 minutes before',
+  '1h' => '1 hour before',
+  '1d' => '1 day before',
+  'morning_of' => '9:00 on the day',
+  'morning_before' => '9:00 the day before',
+  _ =>
+    spec.startsWith('custom:') ? '${spec.substring(7)} minutes before' : spec,
+};
 
 /// When to remind for [due] (UTC in, UTC out).
 DateTime remindAt(DateTime due, String spec) {
   if (!isValidOffset(spec)) throw ArgumentError('bad reminder offset: $spec');
   if (_morning.containsKey(spec)) {
     final d = due.toLocal();
-    return DateTime(d.year, d.month, d.day - _morning[spec]!, morningHour).toUtc();
+    return DateTime(
+      d.year,
+      d.month,
+      d.day - _morning[spec]!,
+      morningHour,
+    ).toUtc();
   }
   final minutes = reminderPresets[spec] ?? int.parse(spec.substring(7));
   return due.toUtc().subtract(Duration(minutes: minutes));
@@ -72,7 +80,13 @@ class QuietHours {
       inside = t < endMinutes;
     }
     if (!inside) return null;
-    return DateTime(l.year, l.month, endDay, endMinutes ~/ 60, endMinutes % 60).toUtc();
+    return DateTime(
+      l.year,
+      l.month,
+      endDay,
+      endMinutes ~/ 60,
+      endMinutes % 60,
+    ).toUtc();
   }
 }
 

@@ -11,7 +11,8 @@ import '../notifications/task_reminders_section.dart';
 import 'tasks_repository.dart';
 
 final _taskProvider = FutureProvider.autoDispose.family<Task?, String>(
-    (ref, id) => ref.watch(databaseProvider).taskDao.byId(id));
+  (ref, id) => ref.watch(databaseProvider).taskDao.byId(id),
+);
 
 final _projectsProvider = StreamProvider.autoDispose<List<Project>>((ref) {
   final ws = ref.watch(authControllerProvider).value?.workspaceId;
@@ -32,11 +33,14 @@ class TaskDetailScreen extends ConsumerWidget {
       body: task.when(
         loading: () => const LoadingView(),
         error: (_, _) => const EmptyStateView(
-            title: 'Cannot open this task', message: 'Go back and try again.'),
+          title: 'Cannot open this task',
+          message: 'Go back and try again.',
+        ),
         data: (t) => t == null || t.deletedAt != null
             ? const EmptyStateView(
                 title: 'Task not found',
-                message: 'It may have been deleted on another device.')
+                message: 'It may have been deleted on another device.',
+              )
             : _Form(task: t),
       ),
     );
@@ -82,7 +86,9 @@ class _FormState extends ConsumerState<_Form> {
       setState(() => _error = 'Enter a title.');
       return;
     }
-    final changed = await ref.read(tasksRepositoryProvider).edit(
+    final changed = await ref
+        .read(tasksRepositoryProvider)
+        .edit(
           widget.task,
           TaskEdit(
             title: _title.text,
@@ -121,7 +127,8 @@ class _FormState extends ConsumerState<_Form> {
           initialValue: _status,
           decoration: const InputDecoration(labelText: 'Status'),
           items: [
-            for (final s in taskStatuses) DropdownMenuItem(value: s, child: Text(s)),
+            for (final s in taskStatuses)
+              DropdownMenuItem(value: s, child: Text(s)),
           ],
           onChanged: (v) => setState(() => _status = v ?? _status),
         ),
@@ -130,7 +137,8 @@ class _FormState extends ConsumerState<_Form> {
           initialValue: _priority,
           decoration: const InputDecoration(labelText: 'Priority'),
           items: [
-            for (final p in taskPriorities) DropdownMenuItem(value: p, child: Text(p)),
+            for (final p in taskPriorities)
+              DropdownMenuItem(value: p, child: Text(p)),
           ],
           onChanged: (v) => setState(() => _priority = v ?? _priority),
         ),
@@ -143,7 +151,10 @@ class _FormState extends ConsumerState<_Form> {
             for (final p in projects)
               DropdownMenuItem<String?>(value: p.id, child: Text(p.name)),
             if (_project != null && !known)
-              DropdownMenuItem<String?>(value: _project, child: const Text('Archived project')),
+              DropdownMenuItem<String?>(
+                value: _project,
+                child: const Text('Archived project'),
+              ),
           ],
           onChanged: (v) => setState(() => _project = v),
         ),
@@ -151,16 +162,19 @@ class _FormState extends ConsumerState<_Form> {
         ListTile(
           contentPadding: EdgeInsets.zero,
           leading: const Icon(Icons.event_outlined),
-          title: Text(_due == null
-              ? 'No due date'
-              : 'Due ${_due!.toLocal().toString().split(' ').first}'),
+          title: Text(
+            _due == null
+                ? 'No due date'
+                : 'Due ${_due!.toLocal().toString().split(' ').first}',
+          ),
           onTap: _pickDate,
           trailing: _due == null
               ? null
               : IconButton(
                   tooltip: 'Clear due date',
                   icon: const Icon(Icons.close),
-                  onPressed: () => setState(() => _due = null)),
+                  onPressed: () => setState(() => _due = null),
+                ),
         ),
         const SizedBox(height: 12),
         TaskRemindersSection(task: widget.task),

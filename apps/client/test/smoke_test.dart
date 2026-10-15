@@ -5,7 +5,9 @@ import 'package:omniassist/app/app.dart';
 void main() {
   testWidgets('shell renders Today', (tester) async {
     await tester.pumpWidget(const ProviderScope(child: OmniAssistApp()));
-    await tester.pump(const Duration(seconds: 1)); // auth-restore spinner never settles
+    await tester.pump(
+      const Duration(seconds: 1),
+    ); // auth-restore spinner never settles
     expect(find.text('Today'), findsWidgets);
   });
 }

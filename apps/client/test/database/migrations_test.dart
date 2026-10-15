@@ -20,7 +20,7 @@ void main() {
       names,
       containsAll({
         'projects',
-        'milestones',
+        'records',
         'tasks',
         'time_blocks',
         'sync_state',

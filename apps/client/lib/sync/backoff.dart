@@ -7,8 +7,8 @@ Duration retryDelay(int attempt, {Random? random}) {
   final base = attempt <= 0
       ? steps.first
       : attempt <= steps.length
-          ? steps[attempt - 1]
-          : 1800;
+      ? steps[attempt - 1]
+      : 1800;
   final jitter = 0.8 + 0.4 * (random ?? Random()).nextDouble();
   return Duration(milliseconds: (base * 1000 * jitter).round());
 }

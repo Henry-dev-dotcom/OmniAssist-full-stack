@@ -1,14 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:omniassist/features/sync/sync_controller.dart';
+import 'package:omniassist/features/sync/sync_status.dart';
 import 'package:omniassist/shared_widgets/app_scaffold.dart';
+
+class _IdleSync extends SyncController {
+  @override
+  SyncUiState build() => const SyncUiState();
+}
 
 Future<void> _pump(WidgetTester t, Size size) async {
   t.view.physicalSize = size;
   t.view.devicePixelRatio = 1;
   addTearDown(t.view.reset);
   await t.pumpWidget(
-    const MaterialApp(
-      home: AppScaffold(location: '/app/today', child: SizedBox()),
+    ProviderScope(
+      overrides: [
+        syncControllerProvider.overrideWith(_IdleSync.new),
+        pendingCountProvider.overrideWith((_) => Stream.value(0)),
+        conflictCountProvider.overrideWith((_) => Stream.value(0)),
+      ],
+      child: const MaterialApp(
+        home: AppScaffold(location: '/app/today', child: SizedBox()),
+      ),
     ),
   );
 }
