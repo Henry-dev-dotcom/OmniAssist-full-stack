@@ -1,0 +1,7 @@
+targets:
+  $default:
+    builders:
+      drift_dev:
+        options:
+          # Keeps UTC on round-trip; the default unix-seconds format reads back as local time.
+          store_date_time_values_as_text: true

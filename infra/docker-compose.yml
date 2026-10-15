@@ -1,0 +1,27 @@
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: omni
+      POSTGRES_PASSWORD: omni
+      POSTGRES_DB: omniassist
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omni -d omniassist"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7
+    ports: ["6379:6379"]
+  api:
+    build: ../apps/api
+    env_file: env/.env.example
+    environment:
+      OMNI_DATABASE_URL: postgresql://omni:omni@postgres:5432/omniassist
+      OMNI_REDIS_URL: redis://redis:6379/0
+    ports: ["8000:8000"]
+    depends_on:
+      postgres: {condition: service_healthy}
+volumes:
+  pgdata:
