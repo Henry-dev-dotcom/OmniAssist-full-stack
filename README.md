@@ -11,7 +11,7 @@ platform SDKs and signing credentials are available. The API is FastAPI on Postg
 
 - **Using it yourself on PC and phone: `docs/personal-setup.md`** (Windows, macOS and Linux launchers; PWA installation; Tailscale for the phone)
 - Specification: `docs/SPECIFICATION.md` · Build status: `docs/PHASES.md`
-- Decisions: `docs/decisions/` · Deploying: `docs/deployment.md` · Backups and baselines: `docs/operations.md`
+- Decisions: `docs/decisions/` · Deploying with Vercel + Render + Neon: `docs/deployment.md` · Backups and baselines: `docs/operations.md`
 
 ## Run it locally
 

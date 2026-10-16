@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: omniassist-api
+    runtime: python
+    rootDir: apps/api
+    buildCommand: pip install uv && uv sync --frozen --no-dev
+    startCommand: uv run --no-sync alembic upgrade head && exec uv run --no-sync uvicorn src.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/v1/health/live
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.13"
+      - key: OMNI_ENV
+        value: production
+      - key: OMNI_AUTH_PROVIDER
+        value: local
+      - key: OMNI_ALLOW_REGISTRATION
+        value: "true"
+      - key: OMNI_DATABASE_URL
+        sync: false
+      - key: OMNI_AUTH_LOCAL_SECRET
+        generateValue: true
+      - key: OMNI_CORS_ORIGINS
+        sync: false
+      - key: OMNI_REDIS_URL
+        value: ""
