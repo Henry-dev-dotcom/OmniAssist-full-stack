@@ -1,13 +1,8 @@
-from pathlib import Path
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
-from starlette.responses import Response
-from starlette.types import Scope
 
 from src.api.dependencies import request_id_middleware
 from src.api.error_handlers import register_error_handlers
@@ -71,18 +66,3 @@ async def ready(session: Session) -> JSONResponse:
     except (OSError, SQLAlchemyError):
         return JSONResponse({"status": "unavailable"}, status_code=503)
     return JSONResponse({"status": "ok"})
-
-
-class _AppFiles(StaticFiles):
-    """The built web app. No-cache so a rebuilt app shows at once; the browser still gets
-    304s from the ETag, and the service worker keeps it available offline."""
-
-    async def get_response(self, path: str, scope: Scope) -> Response:
-        response = await super().get_response(path, scope)
-        response.headers["Cache-Control"] = "no-cache"
-        return response
-
-
-if settings.web_dir and Path(settings.web_dir, "index.html").is_file():
-    # Last, so every /api route above wins.
-    app.mount("/", _AppFiles(directory=settings.web_dir, html=True), name="web")

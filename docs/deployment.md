@@ -1,5 +1,10 @@
 # Deploying OmniAssist with Vercel, Render, and Neon
 
+> **Historical guide:** This procedure describes the former Flutter client and is not valid for
+> the current Next.js migration. For the API's current Render baseline and production environment
+> variables, see [`api-deployment.md`](api-deployment.md). Full web/API production release is
+> tracked as Task 24 in [`WEB_PWA_TASKS.md`](WEB_PWA_TASKS.md).
+
 This is the supported hosted deployment for OmniAssist:
 
 ```text

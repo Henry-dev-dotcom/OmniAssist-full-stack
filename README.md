@@ -66,5 +66,6 @@ is unset. See `.github/workflows/ci.yml` for CI database configuration.
 
 - Product specification: `docs/SPECIFICATION.md`
 - Historical Flutter implementation status: `docs/PHASES.md`
-- Deployment and operations: `docs/deployment.md`, `docs/operations.md`
+- Current API deployment baseline: [`docs/api-deployment.md`](docs/api-deployment.md)
+- Historical deployment guide and operations notes: `docs/deployment.md`, `docs/operations.md`
 - Architecture decisions: `docs/decisions/`

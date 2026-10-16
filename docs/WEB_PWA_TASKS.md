@@ -2,17 +2,19 @@
 
 This roadmap tracks the provided [Web/PWA task list PDF](OmniAssist-Web-PWA-Tasks.pdf). The PDF is the authoritative source for full task descriptions, files, dependencies, effort estimates, and acceptance criteria.
 
-**Progress:** Task 1 complete; Task 2 is next. All other tasks are queued.
+**Progress:** Tasks 1–2 complete; Task 3 is next. Tasks 4–24 are queued.
 
 > The PDF summary says “7 phases,” but its body enumerates six numbered phases (1–6) and 24 tasks. No seventh phase is specified, so this tracker preserves the six phases actually listed rather than inventing a phase.
+
+> Task 2 keeps the existing Render Blueprint at the repository root (`render.yaml`), rather than copying it to `infra/render.yaml`, so Render's automatic Blueprint discovery and the single source of truth remain intact.
 
 ## Phase 1: Foundation
 
 | Task | Outcome | Status |
 | --- | --- | --- |
 | 1 | Web-first repository migration | **Complete** |
-| 2 | API configuration and deployment baseline | Next |
-| 3 | PWA shell and design tokens | Queued |
+| 2 | API configuration and deployment baseline | **Complete** |
+| 3 | PWA shell and design tokens | Next |
 | 4 | Contracts, shared types, and CI | Queued |
 
 ## Phase 2: Database and API Core

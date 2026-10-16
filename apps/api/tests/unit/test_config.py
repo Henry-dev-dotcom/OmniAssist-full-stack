@@ -23,6 +23,18 @@ def test_production_requires_config() -> None:
     assert "OMNI_CORS_ORIGINS" in msg
 
 
+def test_production_rejects_short_local_secret() -> None:
+    with pytest.raises(ValidationError) as e:
+        Settings(
+            _env_file=None,
+            env="production",
+            database_url="postgresql://u:p@db/prod",
+            auth_local_secret="too-short",
+            cors_origins=["https://app.example.com"],
+        )
+    assert "OMNI_AUTH_LOCAL_SECRET" in str(e.value)
+
+
 def test_production_oidc_requires_provider_config() -> None:
     with pytest.raises(ValidationError) as e:
         Settings(_env_file=None, env="production", auth_provider="oidc")
