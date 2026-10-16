@@ -63,3 +63,10 @@ DateTime nextFreeStart(
   }
   return at;
 }
+
+/// A block dropped on [day] keeps its local start time and its length.
+(DateTime, DateTime) movedToDay(DateTime start, DateTime end, DateTime day) {
+  final s = start.toLocal();
+  final newStart = DateTime(day.year, day.month, day.day, s.hour, s.minute);
+  return (newStart, newStart.add(end.difference(start)));
+}

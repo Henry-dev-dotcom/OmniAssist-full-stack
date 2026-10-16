@@ -65,6 +65,25 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     };
   });
 
+  /// Drag-and-drop on desktop (Spec 4.4); the editor's time fields do the same.
+  Future<void> _moveBlock(TimeBlock b, DateTime day) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final (start, end) = movedToDay(b.startsAt, b.endsAt, day);
+    if (start == b.startsAt.toLocal()) return;
+    final saved = await ref
+        .read(timeBlocksRepositoryProvider)
+        .reschedule(b.id, start, end);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(
+          saved.overlaps.isEmpty
+              ? 'Moved to ${_months[day.month - 1]} ${day.day}.'
+              : 'Moved. It overlaps ${saved.overlaps.map((o) => o.title).join(', ')}.',
+        ),
+      ),
+    );
+  }
+
   String get _title => switch (_view) {
     CalendarView.month => '${_months[_day.month - 1]} ${_day.year}',
     CalendarView.week =>
@@ -168,6 +187,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                           _day = d;
                           _view = CalendarView.day;
                         }),
+                        onDrop: (item, d) => item is TimeBlock
+                            ? _moveBlock(item, d)
+                            : bookTask(context, ref, ws, item as Task, d),
                       ),
                       CalendarView.month => _Month(
                         day: _day,
@@ -249,40 +271,90 @@ class _Agenda extends StatelessWidget {
   }
 }
 
+/// Drag works with a mouse on wide screens; touch screens keep tap-to-edit (Spec 8.3).
+bool canDrag(BuildContext context) => MediaQuery.sizeOf(context).width >= 900;
+
 class _Week extends StatelessWidget {
   const _Week({
     required this.start,
     required this.blocks,
     required this.onPick,
+    required this.onDrop,
   });
   final DateTime start;
   final List<TimeBlock> blocks;
   final ValueChanged<DateTime> onPick;
+
+  /// A dropped [TimeBlock] or [Task] and the day it landed on.
+  final void Function(Object item, DateTime day) onDrop;
   static const _names = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
   @override
-  Widget build(BuildContext context) => ListView(
-    children: [
-      for (var i = 0; i < 7; i++)
-        Builder(
-          builder: (_) {
-            final d = addDays(start, i);
-            final day = blocksOnDay(blocks, d);
-            return ListTile(
-              onTap: () => onPick(d),
-              title: Text('${_names[i]} ${d.day}'),
-              subtitle: Text(
-                day.isEmpty
-                    ? 'Free'
-                    : day
-                          .map((b) => '${hhmm(b.startsAt)} ${b.title}')
-                          .join('\n'),
-              ),
-              trailing: Text('${day.length}'),
-            );
-          },
-        ),
-    ],
-  );
+  Widget build(BuildContext context) {
+    final drag = canDrag(context);
+    return ListView(
+      children: [
+        for (var i = 0; i < 7; i++)
+          Builder(
+            builder: (context) {
+              final d = addDays(start, i);
+              final day = blocksOnDay(blocks, d);
+              return DragTarget<Object>(
+                onWillAcceptWithDetails: (x) =>
+                    x.data is TimeBlock || x.data is Task,
+                onAcceptWithDetails: (x) => onDrop(x.data, d),
+                builder: (context, hover, _) => Material(
+                  color: hover.isEmpty
+                      ? Colors.transparent
+                      : Theme.of(context).colorScheme.secondaryContainer,
+                  child: ListTile(
+                    onTap: () => onPick(d),
+                    title: Text('${_names[i]} ${d.day}'),
+                    subtitle: day.isEmpty
+                        ? Text(
+                            drag ? 'Free · drop a block or task here' : 'Free',
+                          )
+                        : Wrap(
+                            spacing: 6,
+                            runSpacing: 4,
+                            children: [
+                              for (final b in day)
+                                _BlockChip(block: b, draggable: drag),
+                            ],
+                          ),
+                    trailing: Text('${day.length}'),
+                  ),
+                ),
+              );
+            },
+          ),
+      ],
+    );
+  }
+}
+
+class _BlockChip extends StatelessWidget {
+  const _BlockChip({required this.block, required this.draggable});
+  final TimeBlock block;
+  final bool draggable;
+
+  @override
+  Widget build(BuildContext context) {
+    final chip = Chip(
+      label: Text('${hhmm(block.startsAt)} ${block.title}'),
+      visualDensity: VisualDensity.compact,
+    );
+    if (!draggable) return chip;
+    return Tooltip(
+      message: 'Drag to another day to move it',
+      child: Draggable<Object>(
+        data: block,
+        feedback: Material(color: Colors.transparent, child: chip),
+        childWhenDragging: Opacity(opacity: 0.4, child: chip),
+        child: MouseRegion(cursor: SystemMouseCursors.grab, child: chip),
+      ),
+    );
+  }
 }
 
 class _Month extends StatelessWidget {
@@ -358,12 +430,7 @@ class _Tray extends ConsumerWidget {
             for (final t in tasks.take(20))
               Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: ActionChip(
-                  avatar: const Icon(Icons.schedule, size: 16),
-                  label: Text(t.title, overflow: TextOverflow.ellipsis),
-                  tooltip: 'Schedule on ${_months[day.month - 1]} ${day.day}',
-                  onPressed: () => _book(context, ref, t),
-                ),
+                child: _trayChip(context, ref, t),
               ),
           ],
         ),
@@ -371,30 +438,53 @@ class _Tray extends ConsumerWidget {
     );
   }
 
-  Future<void> _book(BuildContext context, WidgetRef ref, Task t) async {
-    final repo = ref.read(timeBlocksRepositoryProvider);
-    final messenger = ScaffoldMessenger.of(context);
-    final base = DateTime(day.year, day.month, day.day, 9);
-    final dayBlocks = blocksOnDay(
-      await repo.overlapsFor(ws, base.toUtc(), addDays(base, 1).toUtc()),
-      day,
+  Widget _trayChip(BuildContext context, WidgetRef ref, Task t) {
+    final chip = ActionChip(
+      avatar: const Icon(Icons.schedule, size: 16),
+      label: Text(t.title, overflow: TextOverflow.ellipsis),
+      tooltip: 'Schedule on ${_months[day.month - 1]} ${day.day}',
+      onPressed: () => bookTask(context, ref, ws, t, day),
     );
-    final start = nextFreeStart(dayBlocks, base, const Duration(hours: 1));
-    try {
-      await repo.create(
-        ws: ws,
-        title: t.title,
-        category: 'focus',
-        startsAt: start,
-        endsAt: start.add(const Duration(hours: 1)),
-        taskId: t.id,
-        projectId: t.projectId,
-      );
-      messenger.showSnackBar(
-        SnackBar(content: Text('Scheduled at ${hhmm(start)}.')),
-      );
-    } on AppError catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
-    }
+    if (!canDrag(context)) return chip;
+    return Draggable<Object>(
+      data: t,
+      feedback: Material(color: Colors.transparent, child: chip),
+      childWhenDragging: Opacity(opacity: 0.4, child: chip),
+      child: chip,
+    );
+  }
+}
+
+/// Books [t] at the first free hour from 09:00 on [day]: the tray's tap and drop action.
+Future<void> bookTask(
+  BuildContext context,
+  WidgetRef ref,
+  String ws,
+  Task t,
+  DateTime day,
+) async {
+  final repo = ref.read(timeBlocksRepositoryProvider);
+  final messenger = ScaffoldMessenger.of(context);
+  final base = DateTime(day.year, day.month, day.day, 9);
+  final dayBlocks = blocksOnDay(
+    await repo.overlapsFor(ws, base.toUtc(), addDays(base, 1).toUtc()),
+    day,
+  );
+  final start = nextFreeStart(dayBlocks, base, const Duration(hours: 1));
+  try {
+    await repo.create(
+      ws: ws,
+      title: t.title,
+      category: 'focus',
+      startsAt: start,
+      endsAt: start.add(const Duration(hours: 1)),
+      taskId: t.id,
+      projectId: t.projectId,
+    );
+    messenger.showSnackBar(
+      SnackBar(content: Text('Scheduled at ${hhmm(start)}.')),
+    );
+  } on AppError catch (e) {
+    messenger.showSnackBar(SnackBar(content: Text(e.message)));
   }
 }

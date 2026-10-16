@@ -78,4 +78,13 @@ void main() {
     final open = await repo.watchUnscheduled('w').first;
     expect(open.map((t) => t.id), ['t2']);
   });
+
+  test('a block dropped on another day keeps its time and length', () {
+    final (s, e) = movedToDay(
+      DateTime(2026, 10, 14, 9, 30),
+      DateTime(2026, 10, 14, 11),
+      DateTime(2026, 10, 17),
+    );
+    expect((s, e), (DateTime(2026, 10, 17, 9, 30), DateTime(2026, 10, 17, 11)));
+  });
 }
