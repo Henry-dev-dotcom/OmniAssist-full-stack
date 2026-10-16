@@ -1,6 +1,6 @@
 // OmniAssist offline shell. After the first visit the app opens without a network;
 // its data already lives in the browser database. API calls are never cached.
-const CACHE = 'omniassist-shell-v2';
+const CACHE = 'omniassist-shell-v3';
 // Everything the first screen needs, so the very next launch works offline.
 const SHELL = ['./', 'index.html', 'flutter_bootstrap.js', 'main.dart.js', 'manifest.json',
   'sqlite3.wasm', 'drift_worker.js', 'favicon.png', 'icons/Icon-192.png',
@@ -24,6 +24,32 @@ self.addEventListener('activate', (event) => {
       if (key !== CACHE) await caches.delete(key);
     }
     await self.clients.claim();
+  })());
+});
+
+// Reminders sent by the server (decision 0006). The payload was encrypted to this device.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch (_) {}
+  event.waitUntil(self.registration.showNotification(data.title || 'OmniAssist reminder', {
+    body: 'Tap to open your reminders.',
+    tag: data.tag,            // the same reminder never stacks twice
+    icon: 'icons/Icon-192.png',
+    data: { url: data.url || './' },
+  }));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data.url, self.registration.scope).href;
+  event.waitUntil((async () => {
+    for (const client of await self.clients.matchAll({ type: 'window', includeUncontrolled: true })) {
+      if ('focus' in client) {
+        await client.navigate(url).catch(() => {});
+        return client.focus();
+      }
+    }
+    return self.clients.openWindow(url);
   })());
 });
 

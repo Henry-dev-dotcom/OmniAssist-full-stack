@@ -10,6 +10,7 @@ import '../../core/errors/error_codes.dart';
 import '../../shared_widgets/app_scaffold.dart';
 import '../../shared_widgets/file_io.dart';
 import '../auth/auth_controller.dart';
+import '../notifications/push_switch.dart';
 import '../sync/sync_status.dart';
 
 /// S24: account, export and deletion.
@@ -27,6 +28,7 @@ class SettingsScreen extends ConsumerWidget {
           subtitle: const Text('Name, time zone, work hours, reminders'),
           onTap: () => context.push('/onboarding'),
         ),
+        const PushSwitch(),
         ListTile(
           leading: const Icon(Icons.notifications_outlined),
           title: const Text('Notifications'),

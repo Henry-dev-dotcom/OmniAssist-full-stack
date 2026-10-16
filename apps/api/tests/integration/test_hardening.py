@@ -1,9 +1,6 @@
 """Task 37: concurrency and authorization hardening against real PostgreSQL."""
 
 import asyncio
-import os
-import subprocess
-import sys
 import uuid
 
 import httpx
@@ -21,13 +18,6 @@ from tests.integration.test_sync import push
 async def test_same_mutation_pushed_concurrently_applies_once(pg_url: str) -> None:
     """Spec 4.12: a repeat never duplicates the record or its activity event, even when
     both copies arrive at the same moment (this used to fail with a 500)."""
-    subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
-        cwd=API_DIR,
-        env={**os.environ, "OMNI_MIGRATION_URL": pg_url},
-        check=True,
-        timeout=120,
-    )
     engine = create_async_engine(_async(pg_url), poolclass=NullPool)
     factory = async_sessionmaker(engine, expire_on_commit=False)
     user, ws = uuid.uuid4(), uuid.uuid4()

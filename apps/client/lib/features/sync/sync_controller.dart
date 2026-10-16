@@ -37,6 +37,8 @@ class SyncController extends Notifier<SyncUiState> {
     if (account == null || state.phase == SyncPhase.syncing) return;
     state = SyncUiState(phase: SyncPhase.syncing, lastSyncAt: state.lastSyncAt);
     final out = await ref.read(syncEngineProvider).syncOnce(account);
+    // Reminders set offline reach the server once their task has synced.
+    if (out.ok) unawaited(ref.read(serverRemindersProvider).flush());
     state = out.ok
         ? SyncUiState(lastSyncAt: ref.read(clockProvider).now())
         : SyncUiState(

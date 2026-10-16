@@ -16,6 +16,7 @@ class Message:
     channel: str
     urgency: str
     title: str
+    user_id: str = ""  # who to push to; empty means in-app only
 
 
 class NotificationGateway(Protocol):

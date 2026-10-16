@@ -10,6 +10,7 @@ from src.api.routes import (
     exports,
     notifications,
     projects,
+    push,
     research,
     sync,
     tasks,
@@ -47,6 +48,7 @@ for router in (
     time_blocks.router,
     sync.router,
     exports.router,
+    push.router,
 ):
     app.include_router(router, prefix="/api/v1")
 

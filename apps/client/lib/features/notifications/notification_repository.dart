@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart';
 
 import '../../core/errors/app_error.dart';
@@ -6,6 +8,7 @@ import '../../core/ids/entity_ids.dart';
 import '../../core/time/app_clock.dart';
 import '../../database/app_database.dart';
 import 'notification_gateway.dart';
+import 'server_reminders.dart';
 import 'reminder_rules.dart';
 
 const defaultQuiet = QuietHours(22 * 60, 7 * 60);
@@ -19,10 +22,13 @@ const _actions = <String, (Set<String>, String?)>{
 };
 
 class NotificationRepository {
-  NotificationRepository(this._db, this._clock, this._gateway);
+  NotificationRepository(this._db, this._clock, this._gateway, [this._server]);
   final AppDatabase _db;
   final AppClock _clock;
   final NotificationGateway _gateway;
+
+  /// Sends reminders on to the server for push delivery; null in tests and offline builds.
+  final ServerReminders? _server;
 
   Future<bool> osPermitted() => _gateway.isPermitted();
 
@@ -96,6 +102,9 @@ class NotificationRepository {
       );
     }
     await _db.reminderDao.replaceForTask(t.id, rows);
+    unawaited(
+      _server?.mirror(t.id),
+    ); // never makes the user wait on the network
     return rows.length;
   }
 

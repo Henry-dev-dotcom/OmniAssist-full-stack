@@ -27,8 +27,24 @@ services:
       OMNI_AUTH_PROVIDER: local
       OMNI_AUTH_LOCAL_SECRET: ${AUTH_LOCAL_SECRET:?set AUTH_LOCAL_SECRET}
       OMNI_CORS_ORIGINS: '["https://${DOMAIN}"]'
+      OMNI_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
     depends_on:
       postgres: {condition: service_healthy}
+
+  # Sends due reminders (in-app always; web push when VAPID keys are set).
+  worker:
+    build: ../../apps/api
+    restart: unless-stopped
+    command: ["uv", "run", "--no-sync", "python", "-m", "src.workers.reminder_worker"]
+    environment:
+      OMNI_ENV: production
+      OMNI_DATABASE_URL: postgresql://omni:${POSTGRES_PASSWORD}@postgres:5432/omniassist
+      OMNI_AUTH_LOCAL_SECRET: ${AUTH_LOCAL_SECRET}
+      OMNI_CORS_ORIGINS: '["https://${DOMAIN}"]'
+      OMNI_VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      OMNI_VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      OMNI_VAPID_SUBJECT: ${VAPID_SUBJECT:-mailto:admin@example.com}
+    depends_on: [api]
 
   web:
     build: ../../apps/client

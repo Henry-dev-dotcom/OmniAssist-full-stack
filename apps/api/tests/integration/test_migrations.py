@@ -34,26 +34,26 @@ def tables(url: str) -> set[str]:
         return {r[0] for r in rows} - {"alembic_version"}
 
 
-def test_upgrade_creates_core_tables_and_indexes(pg_url: str) -> None:
-    alembic(pg_url, "upgrade", "head")
-    assert CORE_TABLES <= tables(pg_url)
-    with engine(pg_url).connect() as c:
+def test_upgrade_creates_core_tables_and_indexes(empty_pg_url: str) -> None:
+    alembic(empty_pg_url, "upgrade", "head")
+    assert CORE_TABLES <= tables(empty_pg_url)
+    with engine(empty_pg_url).connect() as c:
         idx = {r[0] for r in c.execute(text("SELECT indexname FROM pg_indexes"))}
     assert {"idx_tasks_workspace_due", "idx_sync_changes_workspace_sequence",
             "idx_sync_mutations_workspace_id"} <= idx  # fmt: skip
 
 
-def test_downgrade_removes_everything(pg_url: str) -> None:
-    alembic(pg_url, "upgrade", "head")
-    alembic(pg_url, "downgrade", "base")
-    assert tables(pg_url) == set()
-    alembic(pg_url, "upgrade", "head")  # and it can go up again
+def test_downgrade_removes_everything(empty_pg_url: str) -> None:
+    alembic(empty_pg_url, "upgrade", "head")
+    alembic(empty_pg_url, "downgrade", "base")
+    assert tables(empty_pg_url) == set()
+    alembic(empty_pg_url, "upgrade", "head")  # and it can go up again
 
 
-def test_constraints_reject_bad_rows(pg_url: str) -> None:
-    alembic(pg_url, "upgrade", "head")
+def test_constraints_reject_bad_rows(empty_pg_url: str) -> None:
+    alembic(empty_pg_url, "upgrade", "head")
     owner = "00000000-0000-0000-0000-000000000001"
-    with engine(pg_url).begin() as c:
+    with engine(empty_pg_url).begin() as c:
         c.execute(text(f"INSERT INTO users(id,email,display_name) VALUES ('{owner}','a@b.c','A')"))
         ws = c.execute(
             text(f"INSERT INTO workspaces(owner_id,name) VALUES ('{owner}','W') RETURNING id")
@@ -66,5 +66,5 @@ def test_constraints_reject_bad_rows(pg_url: str) -> None:
         "INSERT INTO workspaces(owner_id,name) VALUES ('00000000-0000-0000-0000-000000000001','')",
     ]
     for sql in bad:
-        with pytest.raises(IntegrityError), engine(pg_url).begin() as c:
+        with pytest.raises(IntegrityError), engine(empty_pg_url).begin() as c:
             c.execute(text(sql))

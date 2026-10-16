@@ -1,8 +1,5 @@
 """Built-in email/password sign-in against real PostgreSQL."""
 
-import os
-import subprocess
-import sys
 from collections.abc import AsyncIterator
 
 import httpx
@@ -14,18 +11,11 @@ from src.auth.dependencies import get_provider
 from src.auth.local_provider import LocalProvider
 from src.infrastructure.database.session import get_session
 from src.main import app
-from tests.integration.test_api_flows import API_DIR, _async
+from tests.integration.test_api_flows import _async
 
 
 @pytest.fixture
 async def client(pg_url: str) -> AsyncIterator[httpx.AsyncClient]:
-    subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
-        cwd=API_DIR,
-        env={**os.environ, "OMNI_MIGRATION_URL": pg_url},
-        check=True,
-        timeout=120,
-    )
     engine = create_async_engine(_async(pg_url), poolclass=NullPool)
     factory = async_sessionmaker(engine, expire_on_commit=False)
 

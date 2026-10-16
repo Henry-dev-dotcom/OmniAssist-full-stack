@@ -48,7 +48,7 @@ async def dispatch_due(
     due = await s.execute(
         text(
             """SELECT n.id, n.workspace_id, n.entity_type, n.entity_id, n.title, n.urgency,
-              n.channel, n.delivery_status, u.timezone, u.preferences
+              n.channel, n.delivery_status, u.timezone, u.preferences, u.id AS user_id
             FROM notifications n JOIN workspaces w ON w.id = n.workspace_id
             JOIN users u ON u.id = w.owner_id
             WHERE n.deleted_at IS NULL AND (
@@ -79,7 +79,9 @@ async def dispatch_due(
             result.deferred += 1
             continue
         try:
-            await gateway.send(Message(str(r["id"]), r["channel"], r["urgency"], r["title"]))
+            await gateway.send(
+                Message(str(r["id"]), r["channel"], r["urgency"], r["title"], str(r["user_id"]))
+            )
             status, reason = "sent", None
             result.sent += 1
         except DeliveryError as e:
@@ -99,9 +101,15 @@ async def dispatch_due(
 
 
 async def main(interval_seconds: int = 30) -> None:  # pragma: no cover - process loop
+    from src.config import settings
     from src.infrastructure.database.session import SessionFactory
+    from src.infrastructure.notifications.webpush import WebPushGateway
 
-    gateway = InAppGateway()
+    gateway: NotificationGateway = (
+        WebPushGateway(SessionFactory, settings.vapid_private_key, settings.vapid_subject)
+        if settings.vapid_private_key
+        else InAppGateway()
+    )
     while True:
         try:
             async with SessionFactory() as s:

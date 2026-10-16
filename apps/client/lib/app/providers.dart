@@ -11,6 +11,7 @@ import '../features/auth/auth_repository.dart';
 import '../features/auth/token_store.dart';
 import '../features/notifications/notification_gateway.dart';
 import '../features/notifications/notification_repository.dart';
+import '../features/notifications/server_reminders.dart';
 import '../features/projects/projects_repository.dart';
 import '../features/tasks/tasks_repository.dart';
 import '../features/time_blocks/time_blocks_repository.dart';
@@ -53,11 +54,19 @@ final notificationGatewayProvider = Provider<NotificationGateway>(
   (_) => const NoopGateway(),
 );
 
+final serverRemindersProvider = Provider<ServerReminders>(
+  (ref) => ServerReminders(
+    ref.watch(databaseProvider),
+    ref.watch(apiClientProvider),
+  ),
+);
+
 final notificationRepositoryProvider = Provider<NotificationRepository>(
   (ref) => NotificationRepository(
     ref.watch(databaseProvider),
     ref.watch(clockProvider),
     ref.watch(notificationGatewayProvider),
+    ref.watch(serverRemindersProvider),
   ),
 );
 

@@ -56,6 +56,8 @@ CI (`.github/workflows/ci.yml`) runs all of this on every push.
   `web/sw.js`, so it opens offline.
 - Sign-in is built in (email and password, decision 0002); a hosted OpenID Connect provider
   can replace it by configuration (decision 0001).
+- Reminders reach phones and desktops through Web Push once VAPID keys are set
+  (decision 0006); the in-app notification center works without them.
 
 ## Install on a phone
 Serve the web build over **HTTPS** (see `docs/deployment.md`), then

@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     auth_client_secret: str = ""
     cors_origins: list[str] = []
     export_link_ttl_minutes: int = 60  # download links expire (Spec 4.11)
+    # Web push (decision 0006). Empty keys: reminders show in the in-app center only.
+    vapid_private_key: str = ""
+    vapid_public_key: str = ""
+    vapid_subject: str = "mailto:admin@example.com"
 
     @model_validator(mode="after")
     def _require_production_config(self) -> Self:

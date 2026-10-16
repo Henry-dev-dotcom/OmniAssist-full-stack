@@ -5,8 +5,8 @@ Source of task detail: `OmniAssist — Tasks.md` (42 tasks, 8 phases). Status as
 Status key: **Done** = built, and its server and client parts pass their tests.
 **Done, with limits** = the acceptance criteria are met, with the stated gap.
 
-Checks: 163 API tests pass against PostgreSQL (ruff and mypy clean), including the two MVP
-journey tests. 108 client tests pass (`flutter analyze` clean). The web app was checked in a
+Checks: 182 API tests pass against PostgreSQL (ruff and mypy clean), including the two MVP
+journey tests. 122 client tests pass (`flutter analyze` clean). The web app was checked in a
 browser: sign-up, sign-in, capture, and opening offline with both servers stopped.
 
 ## Phase 1: Repository and project foundation (Tasks 1-7)
@@ -46,10 +46,10 @@ browser: sign-up, sign-in, capture, and opening offline with both servers stoppe
 | --- | --- | --- |
 | 17 | Task domain and repository | Done |
 | 18 | Quick capture and Inbox | Done |
-| 19 | Task detail, subtasks, tags, and recurrence | Done, with limits: no tag or subtask editor yet |
+| 19 | Task detail, subtasks, tags, and recurrence | Done: tags, subtasks, repeat rules that create the next occurrence (decision 0005) |
 | 20 | Time blocks and overlap warnings | Done |
-| 21 | Calendar and agenda views | Done, with limits: no drag-and-drop on the calendar (button moves) |
-| 22 | Reminder domain and notification adapters | Done, with limits: in-app center only; no OS push plugin |
+| 21 | Calendar and agenda views | Done: drag blocks and tray tasks onto days on desktop; buttons on touch |
+| 22 | Reminder domain and notification adapters | Done: in-app center plus web push to phones and desktops (decision 0006) |
 | 23 | Daily briefing | Done |
 | 24 | Planning MVP integration checkpoint | Done (`test_mvp_journeys.py::test_planning_journey`) |
 
@@ -78,7 +78,7 @@ browser: sign-up, sign-in, capture, and opening offline with both servers stoppe
 | --- | --- | --- |
 | 34 | Local-first search and filters | Done: offline, 5,000 tasks under 500 ms; server search too |
 | 35 | JSON/CSV export and account deletion | Done (decision 0004) |
-| 36 | Notification center and daily briefing polish | Done, with limits: no OS push delivery |
+| 36 | Notification center and daily briefing polish | Done |
 
 ## Phase 8: Security, accessibility, and release quality (Tasks 37-42)
 
@@ -93,10 +93,10 @@ browser: sign-up, sign-in, capture, and opening offline with both servers stoppe
 
 ## Known gaps
 
-- No OS push notifications: reminders show in the in-app notification center (needs a plugin per platform).
-- No password reset or email verification for built-in sign-in (decision 0002).
-- Tasks have no tag or subtask editor; recurring tasks do not create the next occurrence.
-- Calendar rescheduling uses buttons, not drag-and-drop.
+- No email service: no email verification, and a forgotten password is reset by the operator
+  (`python -m src.auth.reset_password`, decision 0002). Users change passwords in Settings.
+- Push notifications need VAPID keys configured on the server (decision 0006); native builds
+  would still need a platform plugin.
 - Native Android/iOS/Windows/Linux builds were not produced on this machine (no SDKs).
 - Open product questions in Spec 12.4 still to settle: hosting region, backup retention,
-  local database encryption, attachments, email reminders.
+  local database encryption, attachments.

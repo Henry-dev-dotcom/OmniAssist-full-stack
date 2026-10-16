@@ -1,9 +1,6 @@
 """Auth, profile, workspace and project routes against real PostgreSQL."""
 
 import logging
-import os
-import subprocess
-import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
@@ -27,13 +24,6 @@ def _async(url: str) -> str:
 
 @pytest.fixture
 async def client(pg_url: str) -> AsyncIterator[httpx.AsyncClient]:
-    subprocess.run(
-        [sys.executable, "-m", "alembic", "upgrade", "head"],
-        cwd=API_DIR,
-        env={**os.environ, "OMNI_MIGRATION_URL": pg_url},
-        check=True,
-        timeout=120,
-    )
     engine = create_async_engine(_async(pg_url), poolclass=NullPool)
     factory = async_sessionmaker(engine, expire_on_commit=False)
 

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../app/providers.dart';
 import '../../core/errors/app_error.dart';
 import '../../core/result/result.dart';
+import '../notifications/web_push.dart';
 import 'auth_repository.dart';
 
 /// null = signed out, Session = signed in. Loading while restoring at start-up.
@@ -36,6 +37,17 @@ class AuthController extends AsyncNotifier<Session?> {
 
   /// [removeLocalData] also clears this device, including unsent changes.
   Future<void> signOut({bool removeLocalData = false}) async {
+    // Stop this device getting the account's reminders before the tokens go.
+    try {
+      final endpoint = await unsubscribePush();
+      if (endpoint != null) {
+        await ref.read(apiClientProvider).post('/push/subscriptions/remove', {
+          'endpoint': endpoint,
+        });
+      }
+    } on Object {
+      // Offline: the browser subscription is already gone, so nothing is delivered here.
+    }
     await ref.read(authRepositoryProvider).signOut();
     if (removeLocalData) await ref.read(databaseProvider).wipe();
     state = const AsyncData(null);

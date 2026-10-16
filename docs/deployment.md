@@ -32,6 +32,15 @@ Open the site in the phone's browser, then:
 
 The installed app opens offline after the first visit and syncs when the connection returns.
 
+**Reminder notifications** (optional, decision 0006): generate a key pair once, put it in
+`.env.prod` as `VAPID_PRIVATE_KEY` / `VAPID_PUBLIC_KEY`, and restart. Each user then turns on
+*Settings → Reminder notifications on this device*. On iPhone this works after *Add to Home
+Screen*.
+
+```
+docker compose -f infra/deployment/docker-compose.prod.yml --env-file infra/deployment/.env.prod   run --rm api uv run --no-sync python -m src.infrastructure.notifications.webpush
+```
+
 ## Native builds (optional)
 
 The same code builds native apps; they need each platform's toolchain:
