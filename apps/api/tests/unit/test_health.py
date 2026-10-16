@@ -41,3 +41,15 @@ def test_security_headers() -> None:
     assert h["x-content-type-options"] == "nosniff"
     assert h["x-frame-options"] == "DENY"
     assert h["referrer-policy"] == "no-referrer"
+
+
+def test_registration_can_be_turned_off(monkeypatch: object) -> None:
+    from src.config import settings
+
+    monkeypatch.setattr(settings, "allow_registration", False)  # type: ignore[attr-defined]
+    r = client.post(
+        "/api/v1/auth/register",
+        json={"email": "a@example.com", "password": "long-enough-pw", "display_name": "A"},
+    )
+    assert r.status_code == 422
+    assert "turned off" in r.json()["error"]["message"]

@@ -20,10 +20,18 @@ import 'router.dart';
 
 final clockProvider = Provider<AppClock>((_) => const SystemClock());
 
-const _apiBase = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://localhost:8000/api/v1',
-);
+const _configuredApiBase = String.fromEnvironment('API_BASE_URL');
+
+/// The API lives next to the app: whatever address the web app was opened from (the PC's
+/// localhost, a private Tailscale address, ...) also serves /api/v1. Set API_BASE_URL at
+/// build time only for an API hosted elsewhere. Native and test builds fall back to localhost.
+String get _apiBase {
+  if (_configuredApiBase.isNotEmpty) return _configuredApiBase;
+  final base = Uri.base;
+  return base.scheme == 'http' || base.scheme == 'https'
+      ? '${base.origin}/api/v1'
+      : 'http://localhost:8000/api/v1';
+}
 
 final databaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase.open();

@@ -1,5 +1,7 @@
 # Deploying OmniAssist
 
+> Running it only for yourself? You don't need any of this: see [personal-setup.md](personal-setup.md).
+
 ## One machine with HTTPS (recommended for the MVP)
 
 Needs a Linux server with Docker, a domain name pointing at it, and ports 80 and 443 open.

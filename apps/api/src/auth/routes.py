@@ -7,6 +7,7 @@ from src.api.responses import envelope
 from src.auth.dependencies import CurrentActor, Provider, Session
 from src.auth.local_provider import LocalProvider
 from src.auth.provider import AuthSession
+from src.config import settings
 from src.domain.common.errors import DomainError, ErrorCode
 from src.domain.users import repository as users
 
@@ -36,6 +37,10 @@ def _session(s: AuthSession) -> dict[str, Any]:
 
 @router.post("/register")
 async def register(body: RegisterBody, request: Request, provider: Provider) -> dict[str, Any]:
+    if not settings.allow_registration:
+        raise DomainError(
+            ErrorCode.DOMAIN_RULE_VIOLATION, "Creating accounts is turned off on this server."
+        )
     s = await provider.register(body.email, body.password, body.display_name)
     return envelope(request, _session(s))
 

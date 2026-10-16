@@ -21,7 +21,12 @@ class Settings(BaseSettings):
     auth_client_id: str = ""
     auth_client_secret: str = ""
     cors_origins: list[str] = []
+    # Personal use: create your account, then set this to false so nobody else can.
+    allow_registration: bool = True
     export_link_ttl_minutes: int = 60  # download links expire (Spec 4.11)
+    # Folder holding the built web app (apps/client/build/web). When set, the API serves the
+    # app too, so one address and one process run everything (decision 0007).
+    web_dir: str = ""
     # Web push (decision 0006). Empty keys: reminders show in the in-app center only.
     vapid_private_key: str = ""
     vapid_public_key: str = ""

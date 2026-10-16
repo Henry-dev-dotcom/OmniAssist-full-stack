@@ -8,6 +8,7 @@ The client is one Flutter codebase. It ships first as an installable web app (PW
 on desktop browsers and installs to Android and iOS home screens; native builds come from the
 same code. The API is FastAPI on PostgreSQL.
 
+- **Using it yourself on PC and phone: `docs/personal-setup.md`** (one command to start; Tailscale for the phone)
 - Specification: `docs/SPECIFICATION.md` · Build status: `docs/PHASES.md`
 - Decisions: `docs/decisions/` · Deploying: `docs/deployment.md` · Backups and baselines: `docs/operations.md`
 
