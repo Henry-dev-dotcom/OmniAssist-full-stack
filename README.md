@@ -4,11 +4,12 @@ Local-first planner and research workflow app for researchers: tasks, time block
 briefing, thesis and grant milestones, systematic reviews, an analysis ledger and an
 experiment log, all usable offline and synced across devices.
 
-The client is one Flutter codebase. It ships first as an installable web app (PWA) that runs
-on desktop browsers and installs to Android and iOS home screens; native builds come from the
-same code. The API is FastAPI on PostgreSQL.
+The client is one Flutter codebase. The supported release is an installable web app (PWA) that
+runs on Windows, macOS and Linux and installs to Android and iOS home screens. It works offline
+and syncs when the API is reachable; native packages can be built from the same code when the
+platform SDKs and signing credentials are available. The API is FastAPI on PostgreSQL.
 
-- **Using it yourself on PC and phone: `docs/personal-setup.md`** (one command to start; Tailscale for the phone)
+- **Using it yourself on PC and phone: `docs/personal-setup.md`** (Windows, macOS and Linux launchers; PWA installation; Tailscale for the phone)
 - Specification: `docs/SPECIFICATION.md` · Build status: `docs/PHASES.md`
 - Decisions: `docs/decisions/` · Deploying: `docs/deployment.md` · Backups and baselines: `docs/operations.md`
 
