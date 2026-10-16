@@ -17,6 +17,7 @@ from src.infrastructure.database.session import SessionFactory
 router = APIRouter(prefix="/exports", tags=["exports"])
 
 NOT_FOUND = DomainError(ErrorCode.NOT_FOUND, "Export not found.")
+MAX_EXPORTS_PER_HOUR = 10  # exports are heavy; Spec 7.4 asks for a limit
 
 
 def sessions() -> Any:
@@ -39,6 +40,15 @@ async def create_export(
     factory: Annotated[Any, Depends(sessions)],
 ) -> dict[str, Any]:
     await require_member(session, body.workspace_id, actor.user_id)
+    recent = await session.execute(
+        text(
+            "SELECT count(*) FROM exports WHERE requested_by = :u "
+            "AND created_at > now() - interval '1 hour'"
+        ),
+        {"u": actor.user_id},
+    )
+    if recent.scalar_one() >= MAX_EXPORTS_PER_HOUR:
+        raise DomainError(ErrorCode.RATE_LIMITED, "Too many exports. Try again in an hour.")
     eid = await service.request(session, body.workspace_id, actor.user_id, body.format)
     await session.commit()
     # Runs after the response is sent, so the request never waits for the build.

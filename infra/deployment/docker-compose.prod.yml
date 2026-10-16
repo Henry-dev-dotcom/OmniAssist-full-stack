@@ -1,0 +1,50 @@
+# One-machine production: PostgreSQL, the API, the web app and Caddy for automatic HTTPS
+# (phones only install the app from an https:// site). See docs/deployment.md.
+#
+#   cp infra/deployment/.env.prod.example infra/deployment/.env.prod   # then edit it
+#   (build the web app with API_BASE_URL=https://$DOMAIN/api/v1 first)
+#   docker compose -f infra/deployment/docker-compose.prod.yml --env-file infra/deployment/.env.prod up -d --build
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: omni
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: omniassist
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U omni -d omniassist"]
+      interval: 5s
+      retries: 20
+
+  api:
+    build: ../../apps/api
+    restart: unless-stopped
+    environment:
+      OMNI_ENV: production
+      OMNI_DATABASE_URL: postgresql://omni:${POSTGRES_PASSWORD}@postgres:5432/omniassist
+      OMNI_AUTH_PROVIDER: local
+      OMNI_AUTH_LOCAL_SECRET: ${AUTH_LOCAL_SECRET:?set AUTH_LOCAL_SECRET}
+      OMNI_CORS_ORIGINS: '["https://${DOMAIN}"]'
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  web:
+    build: ../../apps/client
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN:?set DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    depends_on: [api, web]
+
+volumes:
+  pgdata:
+  caddy_data:

@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../app/providers.dart';
 import '../../core/errors/app_error.dart';
 import '../../core/errors/error_codes.dart';
+import '../../shared_widgets/app_scaffold.dart';
 import '../../shared_widgets/file_io.dart';
 import '../auth/auth_controller.dart';
 import '../sync/sync_status.dart';
@@ -42,6 +43,33 @@ class SettingsScreen extends ConsumerWidget {
           title: const Text('Sync Center'),
           subtitle: const Text('Sync state, errors and conflicts'),
           onTap: () => context.go('/app/sync'),
+        ),
+        ListTile(
+          leading: const Icon(Icons.keyboard_outlined),
+          title: const Text('Keyboard shortcuts'),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (c) => AlertDialog(
+              title: const Text('Keyboard shortcuts'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  for (final (keys, what) in keyboardShortcuts)
+                    ListTile(
+                      dense: true,
+                      title: Text(what),
+                      trailing: Text(keys),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(c),
+                  child: const Text('Close'),
+                ),
+              ],
+            ),
+          ),
         ),
         const Divider(),
         ListTile(

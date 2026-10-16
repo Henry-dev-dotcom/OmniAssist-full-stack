@@ -73,12 +73,15 @@ async def save_mutation(
     m: Any,
     request_hash: str,
     result: dict[str, Any],
-) -> None:
-    await s.execute(
+) -> bool:
+    """False when another transaction already stored this mutation_id (it waits for that
+    transaction to finish first, so the caller can then read the stored result)."""
+    row = await s.execute(
         text(
             """INSERT INTO sync_mutations (mutation_id, workspace_id, actor_id, entity_type,
             entity_id, operation, base_version, request_hash, result)
-            VALUES (:m, :w, :a, :t, :e, :o, :b, :h, CAST(:r AS jsonb))"""
+            VALUES (:m, :w, :a, :t, :e, :o, :b, :h, CAST(:r AS jsonb))
+            ON CONFLICT (mutation_id) DO NOTHING RETURNING mutation_id"""
         ),
         {
             "m": m.mutation_id, "w": m.workspace_id, "a": actor_id, "t": m.entity_type,
@@ -86,6 +89,7 @@ async def save_mutation(
             "r": json.dumps(result),
         },
     )  # fmt: skip
+    return row.first() is not None
 
 
 async def save_conflict(

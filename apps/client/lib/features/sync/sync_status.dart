@@ -62,15 +62,24 @@ class SyncStatusChip extends ConsumerWidget {
       ref.watch(conflictCountProvider).value ?? 0,
     );
     final color = s.attention ? Theme.of(context).colorScheme.error : null;
+    void open() => context.push('/app/sync');
+    // On phones the words do not fit beside the title (large text especially).
+    final compact = MediaQuery.sizeOf(context).width < 600;
     return Semantics(
       button: true,
       label: 'Sync status: ${s.text}. Open Sync Center',
       excludeSemantics: true,
-      child: TextButton.icon(
-        onPressed: () => context.push('/app/sync'),
-        icon: Icon(s.icon, size: 18, color: color),
-        label: Text(s.text, style: TextStyle(color: color)),
-      ),
+      child: compact
+          ? IconButton(
+              tooltip: s.text,
+              onPressed: open,
+              icon: Icon(s.icon, color: color),
+            )
+          : TextButton.icon(
+              onPressed: open,
+              icon: Icon(s.icon, size: 18, color: color),
+              label: Text(s.text, style: TextStyle(color: color)),
+            ),
     );
   }
 }

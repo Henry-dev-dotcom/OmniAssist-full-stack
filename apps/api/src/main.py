@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from src.api.dependencies import request_id_middleware
 from src.api.error_handlers import register_error_handlers
@@ -15,6 +18,7 @@ from src.api.routes import (
     workspaces,
 )
 from src.auth import routes as auth_routes
+from src.auth.dependencies import Session
 from src.config import settings
 from src.infrastructure.observability.logging import configure_logging
 
@@ -52,7 +56,11 @@ def live() -> dict[str, str]:
     return {"status": "ok"}
 
 
-# shortcut: ready mirrors live, wire DB check when Task 6 adds the engine
 @app.get("/api/v1/health/ready")
-def ready() -> dict[str, str]:
-    return {"status": "ok"}
+async def ready(session: Session) -> JSONResponse:
+    """Ready only when the database answers, so a load balancer skips a broken instance."""
+    try:
+        await session.execute(text("SELECT 1"))
+    except (OSError, SQLAlchemyError):
+        return JSONResponse({"status": "unavailable"}, status_code=503)
+    return JSONResponse({"status": "ok"})

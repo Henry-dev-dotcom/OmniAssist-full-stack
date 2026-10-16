@@ -17,4 +17,8 @@ async def request_id_middleware(
     finally:
         request_id_var.reset(token)
     response.headers["X-Request-ID"] = request_id
+    # API responses are data, never pages: no sniffing, framing or referrer leaks.
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
     return response

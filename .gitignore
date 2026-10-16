@@ -14,3 +14,4 @@ build/
 apps/client/android/local.properties
 apps/client/ios/Flutter/Generated.xcconfig
 apps/client/ios/Flutter/flutter_export_environment.sh
+.env.prod

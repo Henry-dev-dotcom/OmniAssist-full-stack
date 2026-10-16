@@ -21,7 +21,9 @@ class _IdleSync extends SyncController {
   SyncUiState build() => const SyncUiState();
 }
 
-Future<AppDatabase> _pump(WidgetTester tester) async {
+Future<AppDatabase> _pump(WidgetTester tester, {double textScale = 1}) async {
+  tester.platformDispatcher.textScaleFactorTestValue = textScale;
+  addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   final db = AppDatabase(NativeDatabase.memory());
   addTearDown(db.close);
   await tester.pumpWidget(
@@ -98,6 +100,18 @@ void main() {
       isSemantics(label: 'Top priorities', isHeader: true),
     );
     handle.dispose();
+    await _unmount(tester);
+  });
+
+  testWidgets('200% text still lays out on a phone (WCAG text scaling)', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await _pump(tester, textScale: 2);
+    expect(tester.takeException(), isNull); // no overflow errors
+    expect(find.text('Capture a task'), findsOneWidget);
     await _unmount(tester);
   });
 }

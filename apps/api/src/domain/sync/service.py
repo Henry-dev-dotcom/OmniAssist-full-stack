@@ -133,24 +133,47 @@ async def _log(
     await activity.record(s, m.workspace_id, actor_id, m.entity_type, m.entity_id, action, meta)
 
 
+class _LostRace(Exception):
+    """Another request stored this mutation_id first."""
+
+
+def _out(m: MutationIn, result: dict[str, Any]) -> dict[str, Any]:
+    return {"mutation_id": str(m.mutation_id), **result}
+
+
+def _replay(m: MutationIn, digest: str, seen: dict[str, Any]) -> dict[str, Any]:
+    if seen["request_hash"] != digest:
+        return _out(m, _rejected(ErrorCode.IDEMPOTENCY_KEY_REUSED, "Mutation ID reused."))
+    return _out(m, seen["result"])
+
+
 async def apply_mutation(s: AsyncSession, actor_id: uuid.UUID, m: MutationIn) -> dict[str, Any]:
     digest = _hash(m)
     seen = await sync.find_mutation(s, m.mutation_id)
     if seen is not None:
-        if seen["request_hash"] != digest:
-            return _rejected(ErrorCode.IDEMPOTENCY_KEY_REUSED, "Mutation ID reused.")
-        return {"mutation_id": str(m.mutation_id), **seen["result"]}
+        return _replay(m, digest, seen)
     if not await workspaces.is_member(s, m.workspace_id, actor_id):
-        return _rejected(ErrorCode.FORBIDDEN, "You do not have access to this workspace.")
+        return _out(m, _rejected(ErrorCode.FORBIDDEN, "You do not have access to this workspace."))
     entity = ENTITIES.get(m.entity_type)
     if entity is None:
-        return _rejected(ErrorCode.VALIDATION_ERROR, f"Unsupported entity_type: {m.entity_type}.")
+        return _out(
+            m, _rejected(ErrorCode.VALIDATION_ERROR, f"Unsupported entity_type: {m.entity_type}.")
+        )
     try:
-        async with s.begin_nested():  # a failed mutation rolls back alone
-            result = await _apply(s, entity, m, actor_id)
-    except ValidationError:
-        result = _rejected(ErrorCode.VALIDATION_ERROR, "Mutation values are invalid.")
-    except DomainError as e:
-        result = _rejected(e.code, e.message)
-    await sync.save_mutation(s, actor_id, m, digest, result)
-    return {"mutation_id": str(m.mutation_id), **result}
+        # The change and its idempotency record commit together, or not at all.
+        async with s.begin_nested():
+            try:
+                async with s.begin_nested():  # a failed mutation rolls back alone
+                    result = await _apply(s, entity, m, actor_id)
+            except ValidationError:
+                result = _rejected(ErrorCode.VALIDATION_ERROR, "Mutation values are invalid.")
+            except DomainError as e:
+                result = _rejected(e.code, e.message)
+            if not await sync.save_mutation(s, actor_id, m, digest, result):
+                raise _LostRace
+    except _LostRace:
+        # A concurrent push with the same mutation_id won; its effects stand alone.
+        won = await sync.find_mutation(s, m.mutation_id)
+        assert won is not None
+        return _replay(m, digest, won)
+    return _out(m, result)

@@ -1,48 +1,63 @@
 # OmniAssist
 
-Local-first planner and research workflow app. Specs: `docs/`. Build status: `docs/PHASES.md`.
+Local-first planner and research workflow app for researchers: tasks, time blocks, a daily
+briefing, thesis and grant milestones, systematic reviews, an analysis ledger and an
+experiment log, all usable offline and synced across devices.
 
-The client is one Flutter codebase. It ships first as a web app (PWA) that installs to
-Android and iOS home screens; native Android/iOS builds come from the same code later.
+The client is one Flutter codebase. It ships first as an installable web app (PWA) that runs
+on desktop browsers and installs to Android and iOS home screens; native builds come from the
+same code. The API is FastAPI on PostgreSQL.
 
-## Setup
+- Specification: `docs/SPECIFICATION.md` · Build status: `docs/PHASES.md`
+- Decisions: `docs/decisions/` · Deploying: `docs/deployment.md` · Backups and baselines: `docs/operations.md`
+
+## Run it locally
 
 Needs Flutter (stable), Python 3.13+ with [uv](https://docs.astral.sh/uv/), and PostgreSQL 13+.
+
+Database (once, as a PostgreSQL superuser): `psql -U postgres -f infra/create_dev_db.sql`
 
 API:
 ```
 cd apps/api
+cp ../../infra/env/.env.example .env    # adjust the database URL/port if needed
 uv sync
-uv run alembic upgrade head        # uses OMNI_DATABASE_URL, see infra/env/.env.example
+uv run alembic upgrade head
 uv run uvicorn src.main:app --port 8000
 ```
 
-Client:
+Web app:
 ```
 cd apps/client
 flutter pub get
 dart run build_runner build --delete-conflicting-outputs   # Drift code; rerun after table changes
+flutter build web --release --no-web-resources-cdn
+python -m http.server 8080 --directory build/web
 ```
+Open http://localhost:8080, choose **Create an account**, and you are in.
 
 ## Checks
 ```
-cd apps/api && uv run pytest && uv run ruff check src tests && uv run mypy
+cd apps/api && uv run ruff check src tests && uv run mypy && uv run pytest
 cd apps/client && flutter analyze && flutter test
 ```
-API integration tests need `OMNI_TEST_DATABASE_URL` (a Postgres user that can create databases);
-without it they skip.
+API integration tests need `OMNI_TEST_DATABASE_URL` (a Postgres user that can create
+databases, e.g. `postgresql://omni:omni@localhost:5432/postgres`); without it they skip.
+CI (`.github/workflows/ci.yml`) runs all of this on every push.
 
-## Web app (PWA)
-```
-cd apps/client
-flutter build web --release --dart-define=API_BASE_URL=https://your-api.example.com/api/v1
-```
-Serve `build/web/` from any static host. Add that site's origin to the API's
-`OMNI_CORS_ORIGINS`. Local try-out: `python -m http.server 8080 --directory build/web`.
+## How it fits together
 
-`web/sqlite3.wasm` (sqlite3 3.7.1) and `web/drift_worker.js` (drift 2.35.2) run the offline
-database in the browser. Update both when those package versions change.
+- Every change is written to the device's database first, with an outbox entry, in one
+  transaction. A sync engine pushes the outbox and pulls the server's change feed.
+- `mutation_id` makes every upload idempotent; edits to different fields merge, the same field
+  edited on two devices becomes a conflict the user resolves in the Sync Center.
+- The web app stores its database in the browser (`web/sqlite3.wasm`, `web/drift_worker.js`
+  for sqlite3 3.7.1 and drift 2.35.2; update both with those packages) and caches itself with
+  `web/sw.js`, so it opens offline.
+- Sign-in is built in (email and password, decision 0002); a hosted OpenID Connect provider
+  can replace it by configuration (decision 0001).
 
-Install on a phone: open the site over **HTTPS**, then
-- Android (Chrome): menu → *Install app* / *Add to Home screen*.
+## Install on a phone
+Serve the web build over **HTTPS** (see `docs/deployment.md`), then
+- Android (Chrome): menu → *Install app*.
 - iOS (Safari): Share → *Add to Home Screen*.
