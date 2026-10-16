@@ -71,7 +71,13 @@ class AuthRepository implements TokenSource {
   }
 
   Future<Result<Session>> restore() async {
+    final cached = await _cachedSession();
     if (_access == null && !await refresh()) {
+      // Offline with a refresh token still stored: open local data (Spec 4.1).
+      // A rejected token was already cleared by refresh(), so it never gets here.
+      if (cached != null && await _store.readRefreshToken() != null) {
+        return Ok(cached);
+      }
       return const Err(
         AppError(
           code: ErrorCode.unauthenticated,
@@ -82,8 +88,18 @@ class AuthRepository implements TokenSource {
     try {
       return Ok(await _loadSession());
     } on AppError catch (e) {
+      if (cached != null && e.code == ErrorCode.dependencyUnavailable) {
+        return Ok(cached);
+      }
       return Err(e);
     }
+  }
+
+  Future<Session?> _cachedSession() async {
+    final parts = (await _store.readSession())?.split(' ');
+    return parts == null || parts.length != 2
+        ? null
+        : Session(userId: parts[0], workspaceId: parts[1]);
   }
 
   Future<void> signOut() async {
@@ -113,6 +129,12 @@ class AuthRepository implements TokenSource {
         ? list.first as Map<String, dynamic>
         : await _api.post('/workspaces', {'name': 'Personal'})
               as Map<String, dynamic>;
-    return Session(userId: me['id'] as String, workspaceId: ws['id'] as String);
+    final session = Session(
+      userId: me['id'] as String,
+      workspaceId: ws['id'] as String,
+    );
+    // Remembered so the next start can open local data without a network.
+    await _store.writeSession('${session.userId} ${session.workspaceId}');
+    return session;
   }
 }

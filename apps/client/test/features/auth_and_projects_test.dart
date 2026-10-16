@@ -111,6 +111,34 @@ void main() {
       expect(await store.readRefreshToken(), 'old');
     });
 
+    test('offline start with a remembered session opens local data', () async {
+      final repo = build((_) => throw http.ClientException('down'));
+      await store.writeRefreshToken('old');
+      await store.writeSession('u1 w1');
+      final r = await repo.restore();
+      expect((r as Ok<Session>).value.workspaceId, 'w1');
+    });
+
+    test('a rejected token never opens the cached session', () async {
+      final repo = build((_) => _err(401, 'UNAUTHENTICATED'));
+      await store.writeRefreshToken('old');
+      await store.writeSession('u1 w1');
+      expect(await repo.restore(), isA<Err<Session>>());
+      expect(await store.readSession(), isNull);
+    });
+
+    test('offline without a remembered session asks to sign in', () async {
+      final repo = build((_) => throw http.ClientException('down'));
+      await store.writeRefreshToken('old');
+      expect(await repo.restore(), isA<Err<Session>>());
+    });
+
+    test('sign in remembers the session for offline starts', () async {
+      final repo = build(happy);
+      await repo.signIn('a@b.co', 'pw');
+      expect(await store.readSession(), 'u1 w1');
+    });
+
     test('expired access token refreshes once and retries', () async {
       var meCalls = 0;
       final repo = build((r) {
