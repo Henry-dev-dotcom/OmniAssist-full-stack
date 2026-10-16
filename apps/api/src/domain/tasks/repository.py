@@ -76,6 +76,8 @@ async def list_tasks(
     workspace_id: uuid.UUID,
     status: str | None = None,
     project_id: uuid.UUID | None = None,
+    limit: int = 50,
+    offset: int = 0,
 ) -> list[dict[str, Any]]:
     where = ["workspace_id = :w", "deleted_at IS NULL"]
     params: dict[str, Any] = {"w": workspace_id}
@@ -88,9 +90,9 @@ async def list_tasks(
     rows = await s.execute(
         text(
             f"SELECT {COLUMNS} FROM tasks WHERE {' AND '.join(where)} "
-            "ORDER BY due_at NULLS LAST, created_at"
+            "ORDER BY due_at NULLS LAST, created_at, id LIMIT :limit OFFSET :offset"
         ),
-        params,
+        {**params, "limit": limit, "offset": offset},
     )
     return [dict(r) for r in rows.mappings()]
 

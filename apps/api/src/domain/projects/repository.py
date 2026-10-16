@@ -20,7 +20,7 @@ UPDATABLE = ("name", "category", "status", "description", "start_at", "target_at
 
 
 async def list_projects(
-    s: AsyncSession, workspace_id: uuid.UUID, view: str
+    s: AsyncSession, workspace_id: uuid.UUID, view: str, limit: int = 50, offset: int = 0
 ) -> list[dict[str, Any]]:
     cond = {
         "active": "AND status <> 'archived'",
@@ -30,9 +30,9 @@ async def list_projects(
     rows = await s.execute(
         text(
             f"SELECT {COLUMNS} FROM projects WHERE workspace_id = :w AND deleted_at IS NULL "
-            f"{cond} ORDER BY name"
+            f"{cond} ORDER BY name, id LIMIT :limit OFFSET :offset"
         ),
-        {"w": workspace_id},
+        {"w": workspace_id, "limit": limit, "offset": offset},
     )
     return [dict(r) for r in rows.mappings()]
 

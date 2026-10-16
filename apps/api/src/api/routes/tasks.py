@@ -27,12 +27,16 @@ async def list_tasks(
     workspace_id: Annotated[uuid.UUID, Query()],
     status: Annotated[TaskStatus | None, Query()] = None,
     project_id: Annotated[uuid.UUID | None, Query()] = None,
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> dict[str, Any]:
     await require_member(session, workspace_id, actor.user_id)
     rows = await repository.list_tasks(
-        session, workspace_id, status.value if status else None, project_id
+        session, workspace_id, status.value if status else None, project_id, limit, offset
     )
-    return envelope(request, [_out(r) for r in rows])
+    return envelope(
+        request, [_out(r) for r in rows], limit=limit, offset=offset, has_more=len(rows) == limit
+    )
 
 
 @router.post("", status_code=201)

@@ -26,10 +26,14 @@ async def list_projects(
     session: Session,
     workspace_id: Annotated[uuid.UUID, Query()],
     view: Annotated[Literal["active", "archived", "all"], Query()] = "active",
+    limit: Annotated[int, Query(ge=1, le=100)] = 50,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ) -> dict[str, Any]:
     await require_member(session, workspace_id, actor.user_id)
-    rows = await repository.list_projects(session, workspace_id, view)
-    return envelope(request, [_out(r) for r in rows])
+    rows = await repository.list_projects(session, workspace_id, view, limit, offset)
+    return envelope(
+        request, [_out(r) for r in rows], limit=limit, offset=offset, has_more=len(rows) == limit
+    )
 
 
 @router.post("", status_code=201)

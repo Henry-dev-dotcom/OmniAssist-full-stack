@@ -9,10 +9,16 @@
 
 ## In progress
 
-- [ ] **Task 5 — Neon schema and migrations.** Continue from the plan in `docs/WEB_PWA_TASKS.md` and the original task PDF.
+- [ ] Tasks 11–16 — Authenticated frontend.
 
-## Queued
-- [ ] Tasks 6–10 — Database and API core.
+## Completed in Phase 2
+
+- [x] **Task 5 — Neon schema and migrations.** PostgreSQL migrations cover users, workspaces, projects, tasks, time blocks, milestones, reviews, analyses, experiments, notifications, activities, exports, sync state, and preferences. Upgrade, downgrade, and constraint coverage are exercised in the migration suite; typed SQLAlchemy mappings now cover the persisted Phase 2 entities.
+- [x] **Task 6 — Auth claims and workspace authorization.** JWT/OIDC issuer, audience, signature, and expiry verification; provider-subject mapping; personal workspace ownership; and safe cross-workspace authorization responses are implemented.
+- [x] **Task 7 — Project and task API.** CRUD, validation, statuses, tags, subtasks, due dates, recurrence, completion timestamps, tombstones, workspace-scoped links, and stable paginated list responses are implemented.
+- [x] **Task 8 — Calendar, reminders, and milestones API.** Time blocks validate dates, return overlap warnings without blocking saves, support task/project links, and expose reminder/notification state with quiet-hours rules; milestone dependency and progress rules are enforced through the workspace-scoped domain repositories and sync API.
+- [x] **Task 9 — Research modules API.** Review stages/items and history, bounded research records, analysis transitions, experiment finalization/revisions, and safe content handling are implemented through the workspace-scoped domain repositories and sync API.
+- [x] **Task 10 — Search and export API.** Authorized workspace search, JSON/CSV background exports with expiring signed downloads, rate limiting, and explicit account deletion are implemented.
 - [ ] Tasks 11–16 — Authenticated frontend.
 - [ ] Tasks 17–20 — Research frontend.
 - [ ] Tasks 21–23 — Quality and PWA.
