@@ -94,4 +94,9 @@ are smoke baselines, not production SLOs.
 
 No production Vercel project, Render service, or database target is assumed by this repository.
 A selected domain, PostgreSQL URL, auth/registration decision, backup policy and rollback rehearsal
-must be confirmed before declaring the release complete. See [`known-limitations.md`](known-limitations.md).
+must be confirmed before declaring the release complete. Render's official documentation says its
+Free instances are not for production; Free web services sleep after 15 idle minutes, and Free
+Postgres is limited to 1 GB, expires 30 days after creation, and has no provider backups or managed
+connection pooling. With a zero-cost-only limit, do not deploy this Render stack as production; use a
+different owner-approved production-suitable backend/database or treat it as a non-production demo.
+Do not upgrade or purchase a paid plan without a new explicit approval. See [Render Free limits](https://render.com/docs/free), [Render Postgres backups](https://render.com/docs/postgresql-backups), and [`known-limitations.md`](known-limitations.md).
