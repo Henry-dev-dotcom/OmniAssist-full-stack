@@ -10,7 +10,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 # entity type -> (table, title column, project column, status column, searched columns)
 SOURCES: dict[str, tuple[str, str, str, str | None, tuple[str, ...]]] = {
     "project": ("projects", "name", "id", "status::text", ("name", "description")),
-    "task": ("tasks", "title", "project_id", "status::text", ("title", "description")),
+    "task": (
+        "tasks", "title", "project_id", "status::text", ("title", "description", "tags::text"),
+    ),
     "milestone": ("milestones", "title", "project_id", "status::text", ("title", "description")),
     "review_item": (
         "review_items", "title", "(SELECT v.project_id FROM reviews v WHERE v.id = r.review_id)",

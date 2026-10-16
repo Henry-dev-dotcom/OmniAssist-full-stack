@@ -8,6 +8,8 @@ import '../../shared_widgets/async_state_view.dart';
 import '../auth/auth_controller.dart';
 import '../sync/sync_controller.dart';
 import '../notifications/task_reminders_section.dart';
+import 'recurrence.dart';
+import 'task_extras.dart';
 import 'tasks_repository.dart';
 
 final _taskProvider = FutureProvider.autoDispose.family<Task?, String>(
@@ -61,12 +63,21 @@ class _FormState extends ConsumerState<_Form> {
   late String _priority = widget.task.priority;
   late DateTime? _due = widget.task.dueAt;
   late String? _project = widget.task.projectId;
+  late final _tags = TextEditingController(
+    text: tagsOf(widget.task).join('; '),
+  );
+  late Recurrence? _repeat = widget.task.recurrenceRule == null
+      ? null
+      : parseRule(widget.task.recurrenceRule!);
+  final _subtask = TextEditingController();
   String? _error;
 
   @override
   void dispose() {
     _title.dispose();
     _desc.dispose();
+    _tags.dispose();
+    _subtask.dispose();
     super.dispose();
   }
 
@@ -86,6 +97,20 @@ class _FormState extends ConsumerState<_Form> {
       setState(() => _error = 'Enter a title.');
       return;
     }
+    final tags = [
+      for (final t in _tags.text.split(';'))
+        if (t.trim().isNotEmpty) t.trim(),
+    ];
+    if (tags.length > 50 || tags.any((t) => t.length > 60)) {
+      setState(() => _error = 'Use up to 50 tags of 60 characters or fewer.');
+      return;
+    }
+    if (_repeat != null && _due == null) {
+      setState(
+        () => _error = 'A repeating task needs a due date to repeat from.',
+      );
+      return;
+    }
     final changed = await ref
         .read(tasksRepositoryProvider)
         .edit(
@@ -97,6 +122,8 @@ class _FormState extends ConsumerState<_Form> {
             priority: _priority,
             dueAt: _due,
             projectId: _project,
+            tags: tags,
+            recurrenceRule: _repeat?.toRule() ?? '',
           ),
         );
     if (changed) ref.read(syncControllerProvider.notifier).syncNow();
@@ -176,8 +203,22 @@ class _FormState extends ConsumerState<_Form> {
                   onPressed: () => setState(() => _due = null),
                 ),
         ),
+        TextField(
+          controller: _tags,
+          decoration: const InputDecoration(
+            labelText: 'Tags',
+            helperText: 'Separate tags with ;',
+          ),
+        ),
+        const SizedBox(height: 12),
+        RepeatPicker(
+          value: _repeat,
+          onChanged: (r) => setState(() => _repeat = r),
+        ),
         const SizedBox(height: 12),
         TaskRemindersSection(task: widget.task),
+        const SizedBox(height: 12),
+        SubtaskList(parent: widget.task, controller: _subtask),
         const SizedBox(height: 16),
         FilledButton(onPressed: _save, child: const Text('Save')),
       ],

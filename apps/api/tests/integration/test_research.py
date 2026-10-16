@@ -210,3 +210,31 @@ async def test_project_with_work_cannot_be_deleted(client: httpx.AsyncClient) ->
     assert blocked["error_code"] == "DOMAIN_RULE_VIOLATION"
     await ok(client, mut(ws, "milestone", mid, "delete", {}, 1))
     await ok(client, mut(ws, "project", pid, "delete", {}, 1))
+
+
+async def test_task_tags_rules_and_subtasks(client: httpx.AsyncClient) -> None:  # noqa: F811
+    ws = await make_ws(client, "ada")
+    a, b = new(), new()
+    await ok(
+        client,
+        mut(ws, "task", a, "create",
+            {"title": "Weekly lab meeting", "tags": ["lab", "meeting"],
+             "recurrence_rule": "FREQ=WEEKLY;BYDAY=TU"}),
+        mut(ws, "task", b, "create", {"title": "Prepare slides", "parent_task_id": a}),
+    )  # fmt: skip
+    tasks = {t["id"]: t for t in await get(client, "/tasks", workspace_id=ws)}
+    assert tasks[a]["tags"] == ["lab", "meeting"]
+    assert tasks[a]["recurrence_rule"] == "FREQ=WEEKLY;BYDAY=TU"
+    assert tasks[b]["parent_task_id"] == a
+    [bad] = await push(
+        client, "ada", mut(ws, "task", a, "update", {"recurrence_rule": "hourly"}, 1)
+    )
+    assert bad["error_code"] == "VALIDATION_ERROR"
+    # The parent cannot move under its own subtask.
+    [loop] = await push(client, "ada", mut(ws, "task", a, "update", {"parent_task_id": b}, 1))
+    assert loop["error_code"] == "DOMAIN_RULE_VIOLATION"
+    await ok(client, mut(ws, "task", a, "update", {"tags": ["lab"]}, 1))
+    hits = await get(client, "/search", workspace_id=ws, q="meeting")
+    assert [h["id"] for h in hits] == [a]  # title still says meeting
+    hits = await get(client, "/search", workspace_id=ws, q="lab")
+    assert {h["id"] for h in hits} == {a}

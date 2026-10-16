@@ -34,6 +34,12 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
     String? projectId,
     String? milestoneId,
     String? status,
+    String? parentTaskId,
+    String? description,
+    String? priority,
+    DateTime? dueAt,
+    String? recurrenceRule,
+    List<String>? tags,
   }) => transaction(() async {
     await into(tasks).insert(
       TasksCompanion.insert(
@@ -42,7 +48,13 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
         title: title,
         projectId: Value(projectId),
         milestoneId: Value(milestoneId),
+        parentTaskId: Value(parentTaskId),
+        description: Value(description),
+        dueAt: Value(dueAt),
+        recurrenceRule: Value(recurrenceRule),
+        tags: Value(jsonEncode(tags ?? const <String>[])),
         status: status == null ? const Value.absent() : Value(status),
+        priority: priority == null ? const Value.absent() : Value(priority),
         createdAt: now,
         updatedAt: now,
         syncState: const Value('pending_create'),
@@ -60,6 +72,12 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
           'project_id': ?projectId,
           'milestone_id': ?milestoneId,
           'status': ?status,
+          'parent_task_id': ?parentTaskId,
+          'description': ?description,
+          'priority': ?priority,
+          'due_at': ?dueAt?.toUtc().toIso8601String(),
+          'recurrence_rule': ?recurrenceRule,
+          if (tags != null && tags.isNotEmpty) 'tags': tags,
         }),
         createdAt: now,
       ),
@@ -123,6 +141,15 @@ class TaskDao extends DatabaseAccessor<AppDatabase> with _$TaskDaoMixin {
             : const Value.absent(),
         milestoneId: has('milestone_id')
             ? Value(changes['milestone_id'] as String?)
+            : const Value.absent(),
+        parentTaskId: has('parent_task_id')
+            ? Value(changes['parent_task_id'] as String?)
+            : const Value.absent(),
+        recurrenceRule: has('recurrence_rule')
+            ? Value(changes['recurrence_rule'] as String?)
+            : const Value.absent(),
+        tags: has('tags')
+            ? Value(jsonEncode(changes['tags']))
             : const Value.absent(),
         dueAt: has('due_at')
             ? Value(changes['due_at'] as DateTime?)

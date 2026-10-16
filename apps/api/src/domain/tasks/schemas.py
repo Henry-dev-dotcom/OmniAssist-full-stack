@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import datetime
 from enum import StrEnum
@@ -6,6 +7,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from src.domain.common.schemas import plain
+from src.domain.tasks.recurrence import validate_rule
 
 
 class TaskStatus(StrEnum):
@@ -37,6 +39,18 @@ class _Fields(BaseModel):
     def _utc(cls, v: datetime | None) -> datetime | None:
         return _aware(v)
 
+    @field_validator("recurrence_rule", check_fields=False)
+    @classmethod
+    def _rule(cls, v: str | None) -> str | None:
+        return None if v is None or not v.strip() else validate_rule(v)
+
+    @field_validator("tags", check_fields=False)
+    @classmethod
+    def _tags(cls, v: list[str] | None) -> list[str] | None:
+        if v is not None and any(not t.strip() or len(t) > 60 for t in v):
+            raise ValueError("tags must be 1 to 60 characters")
+        return v
+
 
 class TaskCreate(_Fields):
     id: uuid.UUID | None = None  # clients generate IDs so offline records keep identity
@@ -52,6 +66,7 @@ class TaskCreate(_Fields):
     estimated_minutes: int | None = Field(default=None, gt=0)
     recurrence_rule: str | None = Field(default=None, max_length=500)
     completed_at: datetime | None = None
+    tags: list[str] = Field(default_factory=list, max_length=50)
 
     def values(self) -> dict[str, Any]:
         return plain(self.model_dump())
@@ -69,6 +84,7 @@ class TaskUpdate(_Fields):
     estimated_minutes: int | None = Field(default=None, gt=0)
     recurrence_rule: str | None = Field(default=None, max_length=500)
     completed_at: datetime | None = None
+    tags: list[str] | None = Field(default=None, max_length=50)
 
     def changes(self) -> dict[str, Any]:
         """Only the fields the caller sent. Sending null clears an optional field."""
@@ -91,5 +107,12 @@ class TaskOut(BaseModel):
     estimated_minutes: int | None
     recurrence_rule: str | None
     completed_at: datetime | None
+    tags: list[str]
     version: int
+
+    @field_validator("tags", mode="before")
+    @classmethod
+    def _decode(cls, v: Any) -> Any:
+        return json.loads(v) if isinstance(v, str) else v
+
     updated_at: datetime

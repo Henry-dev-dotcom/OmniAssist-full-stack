@@ -23,6 +23,7 @@ Task task(
   title: title,
   status: 'planned',
   priority: priority,
+  tags: '[]',
   projectId: project,
 );
 

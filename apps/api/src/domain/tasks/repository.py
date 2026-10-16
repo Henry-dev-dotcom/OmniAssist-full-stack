@@ -1,3 +1,4 @@
+import json
 import uuid
 from datetime import UTC, datetime
 from typing import Any
@@ -15,12 +16,13 @@ from src.domain.tasks.schemas import TaskOut
 
 COLUMNS = (
     "id, workspace_id, project_id, milestone_id, parent_task_id, title, description, status, "
-    "priority, due_at, estimated_minutes, recurrence_rule, completed_at, version, updated_at"
+    "priority, due_at, estimated_minutes, recurrence_rule, completed_at, tags, version, "
+    "updated_at"
 )
-ENUM_CASTS = {"status": "task_status", "priority": "task_priority"}
+ENUM_CASTS = {"status": "task_status", "priority": "task_priority", "tags": "jsonb"}
 UPDATABLE = ("project_id", "milestone_id", "parent_task_id", "title", "description", "status",
              "priority", "due_at", "estimated_minutes", "recurrence_rule",
-             "completed_at")  # fmt: skip
+             "completed_at", "tags")  # fmt: skip
 
 
 def _payload(row: dict[str, Any], keys: set[str] | None = None) -> dict[str, Any]:
@@ -55,6 +57,18 @@ async def _check_links(
         )
         if row.first() is None:
             raise DomainError(ErrorCode.NOT_FOUND, "Parent task not found.")
+        # Walk up from the new parent: meeting this task means a loop of subtasks.
+        cur: uuid.UUID | None = parent_id
+        for _ in range(100):
+            cur = (
+                await s.execute(text("SELECT parent_task_id FROM tasks WHERE id = :t"), {"t": cur})
+            ).scalar_one_or_none()
+            if cur is None:
+                break
+            if cur == task_id:
+                raise DomainError(
+                    ErrorCode.DOMAIN_RULE_VIOLATION, "A task cannot be inside its own subtask."
+                )
 
 
 async def list_tasks(
@@ -126,14 +140,14 @@ async def create(s: AsyncSession, values: dict[str, Any]) -> dict[str, Any]:
                 text(
                     f"""INSERT INTO tasks (id, workspace_id, project_id, milestone_id,
                       parent_task_id, title, description, status, priority, due_at,
-                      estimated_minutes, recurrence_rule, completed_at)
+                      estimated_minutes, recurrence_rule, completed_at, tags)
                     VALUES (:id, :workspace_id, :project_id, :milestone_id, :parent_task_id,
                       :title, :description,
                       CAST(:status AS task_status), CAST(:priority AS task_priority), :due_at,
-                      :estimated_minutes, :recurrence_rule, {completed})
+                      :estimated_minutes, :recurrence_rule, {completed}, CAST(:tags AS jsonb))
                     RETURNING {COLUMNS}"""
                 ),
-                values,
+                {**values, "tags": json.dumps(values.get("tags") or [])},
             )
     except IntegrityError:
         raise DomainError(
@@ -170,7 +184,11 @@ async def update(
         async with s.begin_nested():
             row = await s.execute(
                 text(f"UPDATE tasks SET {', '.join(sets)} WHERE id = :id RETURNING {COLUMNS}"),
-                {**changes, "id": task_id},
+                {
+                    **changes,
+                    "id": task_id,
+                    **({"tags": json.dumps(changes["tags"])} if "tags" in changes else {}),
+                },
             )
     except IntegrityError:
         raise DomainError(ErrorCode.VALIDATION_ERROR, "Task values are inconsistent.") from None

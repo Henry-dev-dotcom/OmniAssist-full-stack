@@ -306,4 +306,67 @@ void main() {
       ); // unlinking keeps the project
     },
   );
+
+  Future<Task> recurring(String rule) async {
+    final id = await captured('Lab meeting');
+    final before = (await db.taskDao.byId(id))!;
+    await repo.edit(
+      before,
+      TaskEdit(
+        title: before.title,
+        description: null,
+        status: 'planned',
+        priority: 'normal',
+        dueAt: DateTime(2026, 10, 14, 10).toUtc(), // a Wednesday
+        projectId: null,
+        tags: const ['lab', 'weekly'],
+        recurrenceRule: rule,
+      ),
+    );
+    return (await db.taskDao.byId(id))!;
+  }
+
+  test(
+    'completing a recurring task creates exactly one next occurrence',
+    () async {
+      final t = await recurring('FREQ=WEEKLY;BYDAY=WE,FR');
+      expect(t.recurrenceRule, 'FREQ=WEEKLY;BYDAY=WE,FR');
+      expect(tagsOf(t), ['lab', 'weekly']);
+      await repo.setDone(t.id, true);
+      final all = await db.select(db.tasks).get();
+      final done = all.singleWhere((x) => x.id == t.id);
+      final next = all.singleWhere((x) => x.id != t.id);
+      expect((done.status, done.recurrenceRule), ('complete', null));
+      expect(next.status, 'planned');
+      expect(next.dueAt!.toLocal(), DateTime(2026, 10, 16, 10)); // Friday
+      expect(next.recurrenceRule, t.recurrenceRule);
+      expect(tagsOf(next), ['lab', 'weekly']);
+      // Unticking and ticking again never makes a third task.
+      await repo.setDone(t.id, false);
+      await repo.setDone(t.id, true);
+      expect(await db.select(db.tasks).get(), hasLength(2));
+    },
+  );
+
+  test('subtasks join the parent and clearing a rule removes it', () async {
+    final t = await recurring('FREQ=DAILY');
+    await repo.addSubtask(t, ' Book room ');
+    final subs = await repo.watchSubtasks(t).first;
+    expect((subs.single.title, subs.single.parentTaskId), ('Book room', t.id));
+    await repo.edit(
+      t,
+      TaskEdit(
+        title: t.title,
+        description: null,
+        status: t.status,
+        priority: t.priority,
+        dueAt: t.dueAt,
+        projectId: null,
+        recurrenceRule: '',
+      ),
+    );
+    expect((await db.taskDao.byId(t.id))!.recurrenceRule, isNull);
+    final last = (await db.syncDao.pending()).last;
+    expect(last.payload, '{"recurrence_rule":null}');
+  });
 }

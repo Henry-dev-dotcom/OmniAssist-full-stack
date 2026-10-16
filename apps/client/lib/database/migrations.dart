@@ -12,11 +12,13 @@ MigrationStrategy appMigrations(AppDatabase db) => MigrationStrategy(
       await db.customStatement(
         'PRAGMA foreign_keys = OFF',
       ); // beforeOpen turns it on
-      await m.alterTable(TableMigration(db.tasks));
+      await m.alterTable(TableMigration(db.tasks, newColumns: [db.tasks.tags]));
       await m.deleteTable('milestones');
       await m.createTable(db.records);
       await m.createIndex(db.idxRecordsWorkspaceType);
     }
+    // Task tags (decision 0005). Coming from v1, the rebuild above already added them.
+    if (from == 2) await m.addColumn(db.tasks, db.tasks.tags);
   },
   beforeOpen: (details) async {
     await db.customStatement('PRAGMA foreign_keys = ON');

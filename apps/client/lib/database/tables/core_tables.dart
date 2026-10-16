@@ -35,6 +35,8 @@ class Tasks extends Table with SyncedColumns {
   IntColumn get estimatedMinutes => integer().nullable()();
   TextColumn get recurrenceRule => text().nullable()();
   DateTimeColumn get completedAt => dateTime().nullable()();
+  TextColumn get tags =>
+      text().withDefault(const Constant('[]'))(); // JSON list (v3)
 }
 
 class TimeBlocks extends Table with SyncedColumns {

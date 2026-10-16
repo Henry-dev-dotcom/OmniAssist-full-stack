@@ -26,6 +26,7 @@ Task task(
   title: id,
   status: status,
   priority: priority,
+  tags: '[]',
   dueAt: due?.toUtc(),
   recurrenceRule: rule,
   milestoneId: milestone,

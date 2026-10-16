@@ -54,6 +54,26 @@ void main() {
     });
   });
 
+  test('v2 to v3 adds task tags and keeps rows', () async {
+    final raw = sqlite3.openInMemory();
+    raw.execute('''
+      CREATE TABLE tasks (id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL,
+        version INTEGER NOT NULL DEFAULT 0, sync_state TEXT NOT NULL DEFAULT 'synced',
+        created_at TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT,
+        project_id TEXT NULL, milestone_id TEXT NULL, parent_task_id TEXT NULL,
+        title TEXT NOT NULL, description TEXT NULL, status TEXT NOT NULL DEFAULT 'inbox',
+        priority TEXT NOT NULL DEFAULT 'normal', due_at TEXT NULL,
+        estimated_minutes INTEGER NULL, recurrence_rule TEXT NULL, completed_at TEXT NULL);
+      INSERT INTO tasks (id, workspace_id, created_at, updated_at, title)
+        VALUES ('t1', 'w1', '2026-10-15T12:00:00.000Z', '2026-10-15T12:00:00.000Z', 'Old');
+      PRAGMA user_version = 2;
+    ''');
+    final db = AppDatabase(NativeDatabase.opened(raw));
+    addTearDown(db.close);
+    final t = (await db.taskDao.byId('t1'))!;
+    expect((t.title, t.tags), ('Old', '[]'));
+  });
+
   group('record store', () {
     late AppDatabase db;
     setUp(() => db = AppDatabase(NativeDatabase.memory()));

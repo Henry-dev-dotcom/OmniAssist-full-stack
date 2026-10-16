@@ -1,5 +1,6 @@
 import '../../database/app_database.dart';
 import '../records/records_repository.dart';
+import '../tasks/tasks_repository.dart';
 
 /// Searchable entity types with their labels (Spec 4.11).
 const searchTypes = <String, String>{
@@ -154,8 +155,9 @@ List<SearchHit> searchLocal({
           projectId: t.projectId,
           status: t.status,
           priority: t.priority,
+          tags: tagsOf(t),
         ),
-        '${t.title}\n${t.description ?? ''}',
+        '${t.title}\n${t.description ?? ''}\n${tagsOf(t).join(' ')}',
       );
     }
   }

@@ -402,6 +402,9 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
         recurrenceRule: ok('recurrence_rule')
             ? Value(payload['recurrence_rule'] as String?)
             : const Value.absent(),
+        tags: ok('tags')
+            ? Value(jsonEncode(payload['tags']))
+            : const Value.absent(),
         completedAt: ok('completed_at')
             ? Value(_dt(payload['completed_at']))
             : const Value.absent(),

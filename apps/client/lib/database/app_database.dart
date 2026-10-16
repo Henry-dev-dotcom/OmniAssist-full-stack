@@ -44,7 +44,7 @@ class AppDatabase extends _$AppDatabase {
     ),
   );
 
-  static const currentSchemaVersion = 2;
+  static const currentSchemaVersion = 3;
 
   @override
   int get schemaVersion => currentSchemaVersion;
