@@ -2,7 +2,7 @@
 
 This roadmap tracks the provided [Web/PWA task list PDF](OmniAssist-Web-PWA-Tasks.pdf). The PDF is the authoritative source for full task descriptions, files, dependencies, effort estimates, and acceptance criteria.
 
-**Progress:** Tasks 1–2 complete; Task 3 is next. Tasks 4–24 are queued.
+**Progress:** Tasks 1–4 complete; Task 5 is next. Tasks 6–24 are queued.
 
 > The PDF summary says “7 phases,” but its body enumerates six numbered phases (1–6) and 24 tasks. No seventh phase is specified, so this tracker preserves the six phases actually listed rather than inventing a phase.
 
@@ -14,14 +14,14 @@ This roadmap tracks the provided [Web/PWA task list PDF](OmniAssist-Web-PWA-Task
 | --- | --- | --- |
 | 1 | Web-first repository migration | **Complete** |
 | 2 | API configuration and deployment baseline | **Complete** |
-| 3 | PWA shell and design tokens | Next |
-| 4 | Contracts, shared types, and CI | Queued |
+| 3 | PWA shell and design tokens | **Complete** |
+| 4 | Contracts, shared types, and CI | **Complete** |
 
 ## Phase 2: Database and API Core
 
 | Task | Outcome | Status |
 | --- | --- | --- |
-| 5 | Neon schema and migrations | Queued |
+| 5 | Neon schema and migrations | Next |
 | 6 | Auth claims and workspace authorization | Queued |
 | 7 | Project and task API | Queued |
 | 8 | Calendar, reminders, and milestones API | Queued |

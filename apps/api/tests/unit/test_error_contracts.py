@@ -10,6 +10,7 @@ from src.domain.common.errors import HTTP_STATUS, DomainError, ErrorCode
 
 ROOT = Path(__file__).resolve().parents[4]
 DOC = (ROOT / "packages/contracts/error_codes.md").read_text()
+TYPESCRIPT = (ROOT / "packages/contracts/src/index.ts").read_text()
 ARCHIVED_DART = (ROOT / "apps/client-flutter-archive/lib/core/errors/error_codes.dart").read_text()
 
 
@@ -19,6 +20,12 @@ def _documented() -> set[str]:
 
 def test_every_code_is_documented_and_vice_versa() -> None:
     assert {c.value for c in ErrorCode} == _documented()
+
+
+def test_typescript_contract_uses_same_error_codes() -> None:
+    source = TYPESCRIPT.split("export type ErrorCode", maxsplit=1)[0]
+    typescript_codes = set(re.findall(r'^\s+"([A-Z_]+)",$', source, re.MULTILINE))
+    assert typescript_codes == {c.value for c in ErrorCode}
 
 
 def test_client_uses_same_names() -> None:

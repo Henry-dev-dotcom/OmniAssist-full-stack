@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#FCFBF7" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Offline — OmniAssist</title>
+    <style>
+      :root { color-scheme: light; font-family: "Segoe UI", system-ui, sans-serif; background: #fcfbf7; color: #17202a; }
+      * { box-sizing: border-box; }
+      body { display: grid; min-height: 100vh; margin: 0; place-items: center; padding: 1.25rem; }
+      main { width: min(100%, 34rem); padding: clamp(1.5rem, 7vw, 3rem); border: 1px solid #e8e3d8; border-radius: 0.75rem; background: #fff; }
+      p { color: #526575; line-height: 1.65; }
+      h1 { margin: 0.8rem 0; font-family: Georgia, "Times New Roman", serif; font-size: clamp(2rem, 8vw, 3rem); font-weight: 500; letter-spacing: -0.04em; }
+      a { display: inline-flex; min-height: 2.75rem; align-items: center; margin-top: 0.5rem; padding: 0.65rem 0.9rem; border-radius: 0.35rem; background: #8e4c2d; color: #fcfbf7; font-weight: 700; text-decoration: none; }
+      a:focus-visible { outline: 3px solid #285e86; outline-offset: 4px; }
+      @media (prefers-color-scheme: dark) { :root { color-scheme: dark; background: #12181f; color: #f4f1ea; } main { border-color: #26313c; background: #1b232c; } p { color: #b4bec8; } a { background: #d69b7c; color: #12181f; } }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p>OMNIASSIST · RESEARCH PLANNER</p>
+      <h1>You’re offline for now.</h1>
+      <p>Your workspace needs a connection to load. The app shell will be ready when you return online.</p>
+      <a href="/">Try again</a>
+    </main>
+  </body>
+</html>

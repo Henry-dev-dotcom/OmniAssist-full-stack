@@ -1,14 +1,17 @@
-.PHONY: check web-check lint typecheck build api-check
+.PHONY: check web-check lint typecheck test-pwa build api-check
 
 check: web-check api-check
 
-web-check: lint typecheck build
+web-check: lint typecheck test-pwa build
 
 lint:
 	pnpm lint
 
 typecheck:
 	pnpm typecheck
+
+test-pwa:
+	pnpm test:pwa
 
 build:
 	pnpm build

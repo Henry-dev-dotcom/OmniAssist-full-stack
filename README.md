@@ -10,8 +10,9 @@ implementation is built from the ordered work plan.
 - `apps/web/` — active TypeScript, Next.js 16 and Tailwind CSS 4 application.
 - `apps/api/` — FastAPI service, PostgreSQL persistence and migrations.
 - `apps/client-flutter-archive/` — archived Flutter implementation; not part of the active build.
-- `packages/contracts/` — shared API contract documentation; typed packages are a later task.
+- `packages/contracts/` — shared TypeScript API envelopes, stable errors and domain models.
 - `docs/` — product specification, operations, deployment and historical implementation notes.
+- `TODO.md` — current milestone and immediate next task.
 - Web/PWA roadmap and progress: [`docs/WEB_PWA_TASKS.md`](docs/WEB_PWA_TASKS.md); original task PDF: [`docs/OmniAssist-Web-PWA-Tasks.pdf`](docs/OmniAssist-Web-PWA-Tasks.pdf).
 
 ## Requirements
@@ -58,9 +59,15 @@ pnpm build
 make check
 ```
 
-`make check` runs web lint, typecheck and production build, followed by API lint, formatting,
-type checking and tests. API integration tests use `OMNI_TEST_DATABASE_URL`; they skip when it
-is unset. See `.github/workflows/ci.yml` for CI database configuration.
+`make check` runs web lint, typecheck, API client/PWA regression tests and production build,
+followed by API lint, formatting, type checking and tests. API integration tests use
+`OMNI_TEST_DATABASE_URL`; they skip when it is unset. The matching GitHub workflows are
+`.github/workflows/web.yml` and `.github/workflows/api.yml`.
+
+The web shell includes the installable PWA manifest and an offline fallback. Its service worker
+only caches public static assets; it bypasses API, authorization-bearing, and all navigation
+responses so user-specific data is not stored by this cache. `make check` includes the PWA
+privacy and manifest regression tests.
 
 ## Product and operational docs
 

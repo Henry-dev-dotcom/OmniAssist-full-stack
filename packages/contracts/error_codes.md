@@ -23,6 +23,6 @@ Version conflicts add `entity_type`, `entity_id`, `server_version`, `client_vers
 | `DEPENDENCY_UNAVAILABLE` | 503 | yes | Storage or provider unavailable. |
 | `INTERNAL_ERROR` | 500 | yes | Unhandled failure. Quote `request_id` when reporting. |
 
-Adding a code: update this table and `apps/api/src/domain/common/errors.py`. The API test still
-checks the archived Flutter contract at `apps/client-flutter-archive/lib/core/errors/error_codes.dart`
-until the TypeScript contracts are introduced.
+Adding a code: update this table, `apps/api/src/domain/common/errors.py`, and
+`packages/contracts/src/index.ts`. The API contract test checks that the documented Python and
+TypeScript code sets stay in sync. The old Flutter enum is retained only as archive history.

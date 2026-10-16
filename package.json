@@ -5,6 +5,7 @@
   "scripts": {
     "lint": "pnpm --filter @omniassist/web lint",
     "typecheck": "pnpm --filter @omniassist/web typecheck",
-    "build": "pnpm --filter @omniassist/web build"
+    "build": "pnpm --filter @omniassist/web build",
+    "test:pwa": "pnpm --filter @omniassist/web test"
   }
 }
