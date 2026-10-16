@@ -118,7 +118,10 @@ export async function requestApi<TData>(
 }
 
 export function apiUrl(path: string): string {
-  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  const base =
+    process.env.NEXT_PUBLIC_API_URL ||
+    (process.env.NODE_ENV === "production" ? undefined : "http://localhost:8000/api/v1");
+  if (!base) throw new Error("NEXT_PUBLIC_API_URL must be configured for production API requests.");
   return `${base.replace(/\/$/, "")}${path}`;
 }
 

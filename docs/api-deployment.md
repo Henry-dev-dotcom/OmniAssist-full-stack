@@ -1,9 +1,9 @@
 # API deployment baseline
 
-This is the current backend runbook for the web-first migration. The Next.js application and
-FastAPI API are separate services. The Next.js app is still a foundation scaffold; the complete
-production web release, auth integration, monitoring, backups, and rollback procedure are
-scheduled for Task 24 in [`WEB_PWA_TASKS.md`](WEB_PWA_TASKS.md).
+This is the backend runbook for the web-first application. The Next.js application and FastAPI API
+are separate services. Phase 5 quality checks are complete; production infrastructure, auth policy,
+monitoring, backups and rollback still require owner-selected targets under Task 24 in
+[`WEB_PWA_TASKS.md`](WEB_PWA_TASKS.md). See the current [production release runbook](deployment.md).
 
 ## Render service
 

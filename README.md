@@ -1,9 +1,9 @@
 # OmniAssist
 
 Local-first planner and research workflow app for postgraduate researchers. The active client
-is a Next.js 16 App Router application; the FastAPI backend remains a separate service. The
-previous Flutter client is preserved in `apps/client-flutter-archive/` while the web/PWA
-implementation is built from the ordered work plan.
+is a Next.js 16 App Router application; the FastAPI backend remains a separate service. Phase 5
+quality checks are complete; production infrastructure has not yet been provisioned. The previous
+Flutter client is preserved in `apps/client-flutter-archive/`.
 
 ## Repository structure
 
@@ -11,7 +11,7 @@ implementation is built from the ordered work plan.
 - `apps/api/` — FastAPI service, PostgreSQL persistence and migrations.
 - `apps/client-flutter-archive/` — archived Flutter implementation; not part of the active build.
 - `packages/contracts/` — shared TypeScript API envelopes, stable errors and domain models.
-- `docs/` — product specification, operations, deployment and historical implementation notes.
+- `docs/` — product specification, operations, deployment and known limitations.
 - `TODO.md` — current milestone and immediate next task.
 - Web/PWA roadmap and progress: [`docs/WEB_PWA_TASKS.md`](docs/WEB_PWA_TASKS.md); original task PDF: [`docs/OmniAssist-Web-PWA-Tasks.pdf`](docs/OmniAssist-Web-PWA-Tasks.pdf).
 
@@ -73,6 +73,6 @@ privacy and manifest regression tests.
 
 - Product specification: `docs/SPECIFICATION.md`
 - Historical Flutter implementation status: `docs/PHASES.md`
-- Current API deployment baseline: [`docs/api-deployment.md`](docs/api-deployment.md)
-- Historical deployment guide and operations notes: `docs/deployment.md`, `docs/operations.md`
+- Production release checklist: [`docs/deployment.md`](docs/deployment.md)
+- API deployment, operations and known limitations: [`docs/api-deployment.md`](docs/api-deployment.md), [`docs/operations.md`](docs/operations.md), [`docs/known-limitations.md`](docs/known-limitations.md)
 - Architecture decisions: `docs/decisions/`

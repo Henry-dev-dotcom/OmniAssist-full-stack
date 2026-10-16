@@ -8,7 +8,7 @@ const require = createRequire(import.meta.url);
 const typescript = require("typescript");
 const webRoot = new URL("../", import.meta.url);
 
-async function loadApiClient(fetchImplementation) {
+async function loadApiClient(fetchImplementation, environment = {}) {
   const source = await readFile(new URL("src/lib/api/client.ts", webRoot), "utf8");
   const compiled = typescript.transpileModule(source, {
     compilerOptions: { module: typescript.ModuleKind.CommonJS, target: typescript.ScriptTarget.ES2022 },
@@ -34,6 +34,7 @@ async function loadApiClient(fetchImplementation) {
       throw new Error(`Unexpected import: ${name}`);
     },
     fetch: fetchImplementation,
+    process: { env: environment },
     Headers,
     Blob,
     FormData,
@@ -48,6 +49,24 @@ async function loadApiClient(fetchImplementation) {
   });
   return testModule.exports;
 }
+
+test("production API URLs use the configured public endpoint", async () => {
+  const client = await loadApiClient(async () => new Response(null), {
+    NODE_ENV: "production",
+    NEXT_PUBLIC_API_URL: "https://omniassist-api.example.com/api/v1/",
+  });
+  assert.equal(client.apiUrl("/projects"), "https://omniassist-api.example.com/api/v1/projects");
+});
+
+test("production API requests fail clearly when NEXT_PUBLIC_API_URL is missing", async () => {
+  const client = await loadApiClient(async () => new Response(null), { NODE_ENV: "production" });
+  assert.throws(() => client.apiUrl("/projects"), /NEXT_PUBLIC_API_URL must be configured/);
+});
+
+test("development API URL keeps the localhost default", async () => {
+  const client = await loadApiClient(async () => new Response(null), { NODE_ENV: "development" });
+  assert.equal(client.apiUrl("/projects"), "http://localhost:8000/api/v1/projects");
+});
 
 test("API client preserves server error request IDs and safe error metadata", async () => {
   const client = await loadApiClient(async () =>

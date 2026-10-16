@@ -30,6 +30,6 @@
 - [x] **Task 15 — Today and calendar UI.** Added Today dashboard metrics, open-task focus, calendar/time-block view, and overlap-aware planning copy tied to the Phase 2 API.
 - [x] **Task 16 — Milestone UI.** Added milestone progress view with project checkpoint empty states and responsive progress rows.
 ## In progress
-- [ ] **Task 24 — Production release.** Verify deployment configuration and secrets, deploy the web/API/database stack, run HTTPS health and authenticated smoke checks, then complete Android/iOS installation checks before declaring release.
+- [ ] **Task 24 — Production release (in progress; blocked).** Preflight found no visible OmniAssist project in the signed-in Vercel workspace, no existing Render service returned for the selected workspace, and no confirmed production database target/connection. Confirm the production domain, database target, authentication/registration policy, and hosting plan before provisioning. Then deploy, verify HTTPS health/readiness, migrations and authenticated web-to-API flows; set backup/monitoring targets and rehearse rollback; finish physical Android/iOS install checks before sign-off.
 
 See [`docs/WEB_PWA_TASKS.md`](docs/WEB_PWA_TASKS.md) and the linked source PDF for the complete ordered plan.

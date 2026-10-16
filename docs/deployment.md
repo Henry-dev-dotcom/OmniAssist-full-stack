@@ -1,142 +1,97 @@
-# Deploying OmniAssist with Vercel, Render, and Neon
+# Production deployment and release checklist
 
-> **Historical guide:** This procedure describes the former Flutter client and is not valid for
-> the current Next.js migration. For the API's current Render baseline and production environment
-> variables, see [`api-deployment.md`](api-deployment.md). Full web/API production release is
-> tracked as Task 24 in [`WEB_PWA_TASKS.md`](WEB_PWA_TASKS.md).
-
-This is the supported hosted deployment for OmniAssist:
+This is the current hosted deployment path for OmniAssist:
 
 ```text
-Flutter web app  →  Vercel
-FastAPI backend  →  Render
-PostgreSQL       →  Neon
+Next.js web app → Vercel
+FastAPI API     → Render
+PostgreSQL      → Neon or another explicitly selected managed PostgreSQL service
 ```
 
-You do **not** need Docker, Caddy, Tailscale, a home PC, or a separate server for this setup.
-The result is one public HTTPS URL that works in desktop browsers and can be installed as a web
-app on Android and iPhone.
+**A production release is not complete until the exact service URLs, authentication policy,
+backup/restore plan, and rollback path are verified.** Do not commit provider credentials or
+paste database URLs, client secrets, or signing keys into chat.
 
-## 1. Create the Neon database
+## 1. Confirm the release target
 
-1. Create a Neon project and database.
-2. Copy the **pooled connection string** from Neon. It normally starts with
-   `postgresql://` and includes `sslmode=require`.
-3. Keep this value private. It will be added only to Render as `OMNI_DATABASE_URL`.
+Before provisioning or changing provider settings, record:
 
-The API converts `postgresql://` to the async PostgreSQL driver automatically, so no editing of
-the Neon URL is needed.
+- The Vercel workspace/project and chosen production domain.
+- The Render workspace/service and plan. Confirm any cost before creating or upgrading resources.
+- The managed PostgreSQL provider/project, region, backup retention, and recovery-point objective.
+- The authentication mode (`local` or a specific OIDC provider), owner-account bootstrap method,
+  and whether registration is private or public.
+- The exact allowed browser origins and the release commit SHA.
 
-## 2. Deploy the backend to Render
+The checked-in Render Blueprint defines `omniassist-api`, but does not create a database. It
+requires the operator to provide `OMNI_DATABASE_URL` and `OMNI_CORS_ORIGINS`.
 
-1. In Render, choose **New → Blueprint**.
-2. Connect the GitHub repository `Henry-dev-dotcom/OmniAssist-full-stack`.
-3. Render will read the repository's `render.yaml` and create the `omniassist-api` web service.
-4. In the Render service environment variables, set:
+## 2. Configure PostgreSQL and Render
 
-   | Variable | Value |
-   |---|---|
-   | `OMNI_DATABASE_URL` | The Neon pooled connection string |
-   | `OMNI_CORS_ORIGINS` | Temporary value `["https://placeholder.invalid"]` until Vercel is created |
+1. Select an existing production PostgreSQL database or provision one under the approved provider
+   and plan. For Neon, use the pooled TLS connection string.
+2. In Render, create or select the service from the root [`render.yaml`](../render.yaml).
+3. Set `OMNI_DATABASE_URL` to the production connection string and `OMNI_CORS_ORIGINS` to a
+   temporary deny-by-default origin until the final Vercel origin is known. Keep the generated
+   `OMNI_AUTH_LOCAL_SECRET`; never substitute the development secret.
+4. Confirm `OMNI_ENV=production`, the intended auth provider and registration policy. The Blueprint
+   currently enables local registration, so do not expose that default publicly without a controlled
+   owner bootstrap plan.
+5. Deploy the API. The Render start command runs `alembic upgrade head` before starting Uvicorn.
+6. Verify `GET /api/v1/health/live` and `GET /api/v1/health/ready` return HTTP 200.
 
-   Render generates `OMNI_AUTH_LOCAL_SECRET` automatically from the Blueprint. Do not replace it
-   with a short or guessable value.
+See [`api-deployment.md`](api-deployment.md) and [`../infra/neon.md`](../infra/neon.md) for
+provider details.
 
-5. Deploy the service. Render runs the Alembic migrations automatically before starting FastAPI.
-6. Copy the Render service URL, for example:
-   `https://omniassist-api.onrender.com`.
-7. Verify the backend health endpoint in a browser:
-   `https://YOUR-RENDER-SERVICE.onrender.com/api/v1/health/live`
+## 3. Configure and deploy the web app
 
-It should return:
+1. In Vercel, import `Henry-dev-dotcom/OmniAssist-full-stack` into the approved workspace and use
+   the repository root. [`vercel.json`](../vercel.json) configures the Next.js build.
+2. Set the **Production** environment variable `NEXT_PUBLIC_API_URL` to the Render API base URL,
+   including `/api/v1` (for example, `https://<service>.onrender.com/api/v1`). This is the actual
+   variable read by the web client; do not use the old Flutter-era `API_BASE_URL` name.
+3. Deploy the approved release SHA. Verify the build points at the production API, not localhost.
 
-```json
-{"status":"ok"}
-```
+## 4. Lock CORS and verify authentication
 
-Render's free service may sleep when unused. The first request after inactivity may be slower.
+1. Set Render's `OMNI_CORS_ORIGINS` to the exact HTTPS Vercel production origin, without a trailing
+   slash; include the custom domain only if it is also intentionally supported.
+2. Restart/redeploy the API and confirm browser preflight and authenticated requests succeed from
+   the production origin.
+3. Verify the selected auth flow, owner-account bootstrap, sign-in, sign-out and token refresh. If
+   using OIDC, configure and test the selected provider's exact issuer, audience, client, and
+   callback settings before opening the site.
+4. Disable public account registration unless multi-user public registration is the explicit
+   product decision. CORS is not an access-control mechanism for direct API clients.
 
-## 3. Deploy the frontend to Vercel
+## 5. Release verification
 
-1. In Vercel, choose **Add New → Project**.
-2. Import `Henry-dev-dotcom/OmniAssist-full-stack`.
-3. Leave the project root as the repository root. The committed `vercel.json` handles the Flutter
-   build and output directory.
-4. Add this Vercel environment variable for **Production**, **Preview**, and **Development**:
+- Web page loads over HTTPS and points to the configured API.
+- API liveness and database readiness checks pass; migrations are at Alembic head.
+- Sign-in, account policy, create-task, project view and research read/write flows pass against the
+  production API.
+- Export downloads, notifications and settings behave as configured.
+- No API/private or credentialed response is cached by the service worker; the generic offline
+  page works without a connection.
+- Complete the real-device Android Chrome and iOS Safari install and create-task smoke checks.
+- Verify provider alerts, database backup retention, and at least one restore rehearsal.
 
-   | Variable | Value |
-   |---|---|
-   | `API_BASE_URL` | `https://YOUR-RENDER-SERVICE.onrender.com/api/v1` |
+Automated release checks run through [Web CI](../.github/workflows/web.yml) and
+[API CI](../.github/workflows/api.yml). Local performance timings in [`operations.md`](operations.md)
+are smoke baselines, not production SLOs.
 
-5. Deploy. The build script installs Flutter stable, generates the Drift database code, and
-   creates the release PWA.
-6. Copy the Vercel production URL, for example:
-   `https://omniassist.vercel.app`.
+## 6. Rollback
 
-The frontend is compiled with the Render API URL. Do not put the Neon URL in Vercel.
+- Keep the release commit SHA, Vercel deployment, and Render deploy ID in the release record.
+- On a web/API regression, roll back to the last known-good deployment from the provider dashboard
+  or revert the release commit and redeploy it.
+- Do **not** blindly downgrade PostgreSQL migrations during an application rollback. Take and
+  verify a database backup first; follow the tested restore procedure in [`operations.md`](operations.md)
+  if a schema/data rollback is required.
+- Record the incident, migration state, recovery point and the follow-up fix before redeploying.
 
-## 4. Lock backend CORS to Vercel
+## Current readiness limits
 
-Return to the Render service environment variables and change:
-
-```text
-OMNI_CORS_ORIGINS=["https://omniassist.vercel.app"]
-```
-
-Use your actual Vercel production URL. If you add a custom Vercel domain later, include both
-origins as valid JSON:
-
-```text
-OMNI_CORS_ORIGINS=["https://omniassist.vercel.app","https://app.example.com"]
-```
-
-Redeploy or restart the Render service after changing the variable.
-
-## 5. Create your account and install the app
-
-1. Open the Vercel URL on a desktop browser.
-2. Choose **Create an account** and create your account.
-3. After your account is created, set Render's `OMNI_ALLOW_REGISTRATION` to `false` and redeploy
-   so nobody else can create an account on the instance.
-4. On Android, open the Vercel URL in Chrome → menu → **Install app** or **Add to Home screen**.
-5. On iPhone, open the Vercel URL in Safari → Share → **Add to Home Screen**.
-6. On Windows/macOS/Linux, open the URL in Chrome or Edge → **Install OmniAssist**.
-
-The app stores data locally first, works offline after the first visit, and synchronizes with the
-Render API when the connection returns. Use the same account on each device.
-
-## 6. Optional web-push reminders
-
-Web-push keys are not required for the core app. To enable reminders on supported browsers:
-
-1. Generate a VAPID key pair locally using the API module:
-   `uv run python -m src.infrastructure.notifications.webpush`.
-2. Add the resulting values to Render as `OMNI_VAPID_PRIVATE_KEY`, `OMNI_VAPID_PUBLIC_KEY`, and
-   `OMNI_VAPID_SUBJECT`.
-3. Add the same public key to the frontend configuration only if the notification settings screen
-   requests it; otherwise use the in-app notification center.
-
-## 7. Updating the app
-
-Push changes to `main`:
-
-```bash
-git add .
-git commit -m "Describe the change"
-git push origin main
-```
-
-Vercel rebuilds the frontend automatically. Render redeploys the backend automatically. Database
-migrations run as part of the Render start command.
-
-## Troubleshooting
-
-- **CORS error:** confirm `OMNI_CORS_ORIGINS` is valid JSON and exactly matches the Vercel URL,
-  including `https://` and excluding a trailing slash.
-- **Backend unavailable:** open `/api/v1/health/live` on the Render URL. If Render is waking from
-  sleep, wait for the service to become ready and retry.
-- **Database error:** verify that Render uses the Neon pooled URL and that it still contains
-  `sslmode=require`.
-- **Flutter build failure on Vercel:** inspect the Vercel build log. The build uses Flutter stable;
-  if the SDK changes incompatibly, pin a tested Flutter tag in `scripts/vercel-build.sh`.
-- **Phone cannot install the app:** use the HTTPS Vercel URL, not a local IP address or `http://` URL.
+No production Vercel project, Render service, or database target is assumed by this repository.
+A selected domain, PostgreSQL URL, auth/registration decision, backup policy and rollback rehearsal
+must be confirmed before declaring the release complete. See [`known-limitations.md`](known-limitations.md).

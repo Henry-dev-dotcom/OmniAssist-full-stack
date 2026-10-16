@@ -2,7 +2,7 @@
 
 This roadmap tracks the provided [Web/PWA task list PDF](OmniAssist-Web-PWA-Tasks.pdf). The PDF is the authoritative source for full task descriptions, files, dependencies, effort estimates, and acceptance criteria.
 
-**Progress:** Tasks 1–23 complete (with documented device-test limits); Task 24 is next.
+**Progress:** Tasks 1–23 complete (with documented device-test limits); Task 24 is in progress and blocked on production targets and owner choices.
 
 > The PDF summary says “7 phases,” but its body enumerates six numbered phases (1–6) and 24 tasks. No seventh phase is specified, so this tracker preserves the six phases actually listed rather than inventing a phase.
 
@@ -62,7 +62,9 @@ Phase 5 verification: bounded browser-local experiment drafts (256 KiB per entry
 
 | Task | Outcome | Status |
 | --- | --- | --- |
-| 24 | Production release | Queued |
+| 24 | Production release | **In progress — blocked on provisioning and owner choices** |
+
+Phase 6 preflight (2026-10-16): the signed-in Vercel workspace contains no visible OmniAssist project; the selected Render workspace returned no existing service to target; and no production PostgreSQL target or connection is confirmed. Production domain, auth/registration policy, database backup objectives, and monitoring/rollback owners are not yet confirmed. No OmniAssist project, service, database or deployment was created or changed. The web client now fails clearly rather than sending production API requests to localhost when `NEXT_PUBLIC_API_URL` is missing; the deployment runbook documents the correct Vercel variable.
 
 ## Milestones
 
