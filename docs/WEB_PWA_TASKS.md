@@ -2,7 +2,7 @@
 
 This roadmap tracks the provided [Web/PWA task list PDF](OmniAssist-Web-PWA-Tasks.pdf). The PDF is the authoritative source for full task descriptions, files, dependencies, effort estimates, and acceptance criteria.
 
-**Progress:** Tasks 1–16 complete; Task 17 is next. Tasks 18–24 are queued.
+**Progress:** Tasks 1–23 complete (with documented device-test limits); Task 24 is next.
 
 > The PDF summary says “7 phases,” but its body enumerates six numbered phases (1–6) and 24 tasks. No seventh phase is specified, so this tracker preserves the six phases actually listed rather than inventing a phase.
 
@@ -52,9 +52,11 @@ This roadmap tracks the provided [Web/PWA task list PDF](OmniAssist-Web-PWA-Task
 
 | Task | Outcome | Status |
 | --- | --- | --- |
-| 21 | Browser persistence and PWA verification | Queued |
-| 22 | Accessibility and responsive QA | Queued |
-| 23 | Security, performance, and integration QA | Queued |
+| 21 | Browser persistence and PWA verification | **Complete** |
+| 22 | Accessibility and responsive QA | **Complete (automated; physical screen-reader/device checks remain)** |
+| 23 | Security, performance, and integration QA | **Complete** |
+
+Phase 5 verification: bounded browser-local experiment drafts (256 KiB per entry, 30-day expiry); Chromium production tests cover reload recovery, the offline shell, private-route redirects, a keyboard skip link, axe WCAG 2.1 AA checks and 320 px overflow. Service-worker tests assert API and credentialed requests are never cached. API CI provides PostgreSQL; local validation passed all 187 API tests, including integration/security and performance cases. Physical Android Chrome/iOS Safari install prompts and an assistive-technology session remain release-time manual checks. API-backed research mutations are online-first; Phase 5 does not add an offline mutation outbox.
 
 ## Phase 6: Deployment
 

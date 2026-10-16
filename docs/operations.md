@@ -43,6 +43,19 @@ Measured 2026-10-16 on a Windows laptop, PostgreSQL 13, one API process
 | Server search across all entity types | 0.11 s |
 | Local search over 5,000 tasks on the device | under 500 ms (Spec 11.1, asserted in client tests) |
 
+Re-measured 2026-10-16 in the Manus Ubuntu sandbox against local PostgreSQL 16 and the
+Python 3.14 test environment (`uv run pytest -q -s tests/integration/test_performance.py`):
+
+| Operation | Time |
+| --- | --- |
+| Push a full batch of 100 mutations | 0.73 s |
+| Replay the same 100 (idempotent) | 0.06 s |
+| Pull 200 changes | 0.03 s |
+| Server search | 26 ms |
+
+These are a local smoke baseline, not production p95/SLO measurements; load, network and
+database topology differ from deployment.
+
 The API p95 target is still open (Spec 11.1); use these as the starting point.
 
 ## Monitoring

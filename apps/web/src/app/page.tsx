@@ -94,7 +94,7 @@ export default function Home() {
             <p className="eyebrow">A THOUGHTFUL FOUNDATION</p>
             <h2 id="capabilities-title">Structure that supports the work.</h2>
             <p className="section-description">
-              The workspace is being built around the real rhythm of postgraduate research.
+              The workspace connects everyday planning with the long arc of postgraduate research.
             </p>
           </div>
 
@@ -111,8 +111,7 @@ export default function Home() {
             ))}
           </div>
           <p className="foundation-note">
-            This release establishes the installable web shell. Planning and research tools will
-            arrive in the following milestones.
+            The installable workspace brings projects, milestones, reviews, analysis records and experiment notes into one place.
           </p>
         </section>
 

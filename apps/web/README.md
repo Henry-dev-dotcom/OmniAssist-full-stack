@@ -32,3 +32,14 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+
+## PWA and browser quality checks
+
+Run `pnpm test:pwa` for service-worker privacy and local-draft unit checks. For production
+browser checks, install Chromium once with `pnpm --filter @omniassist/web exec playwright
+install chromium`, then run `pnpm build` and `pnpm --filter @omniassist/web test:e2e`.
+The browser suite covers keyboard skip-link focus, axe WCAG 2.1 AA, a 320 px layout,
+protected-route redirects, experiment-draft recovery, and the offline shell. Physical Android
+Chrome and iOS Safari install prompts still need a device check before release; see
+[`../../docs/pwa-install.md`](../../docs/pwa-install.md).
