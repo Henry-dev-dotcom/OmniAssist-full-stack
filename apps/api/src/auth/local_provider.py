@@ -186,7 +186,16 @@ class LocalProvider:
             )
         except jwt.PyJWTError:
             raise unauthenticated() from None
+        if not await self._exists(claims["sub"]):
+            raise unauthenticated()  # deleted account: its unexpired tokens die with it
         return Identity(subject=claims["sub"], email=claims["email"], name=claims.get("name"))
+
+    async def _exists(self, subject: str) -> bool:
+        async with self._sessions() as s:
+            row = await s.execute(
+                text("SELECT 1 FROM local_credentials WHERE subject = :sub"), {"sub": subject}
+            )
+            return row.first() is not None
 
     def _check_rate(self, key: str) -> None:
         cutoff = self._clock() - FAILURE_WINDOW_SECONDS

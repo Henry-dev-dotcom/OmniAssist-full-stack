@@ -99,6 +99,12 @@ class AuthRepository implements TokenSource {
     await _store.clear();
   }
 
+  /// Drops tokens without calling the server (the account is already gone).
+  Future<void> forget() async {
+    _access = null;
+    await _store.clear();
+  }
+
   /// First sign-in creates a default workspace so the app always has a scope.
   Future<Session> _loadSession() async {
     final me = await _api.get('/me') as Map<String, dynamic>;

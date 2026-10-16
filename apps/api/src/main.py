@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from src.api.dependencies import request_id_middleware
 from src.api.error_handlers import register_error_handlers
 from src.api.routes import (
+    exports,
     notifications,
     projects,
     research,
@@ -41,6 +42,7 @@ for router in (
     notifications.router,
     time_blocks.router,
     sync.router,
+    exports.router,
 ):
     app.include_router(router, prefix="/api/v1")
 

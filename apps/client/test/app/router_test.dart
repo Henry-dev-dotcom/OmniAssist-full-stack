@@ -18,19 +18,11 @@ Widget _app(String initial) => ProviderScope(
 );
 
 void main() {
-  for (final path in ['/onboarding', '/app/search']) {
-    testWidgets('route $path renders a placeholder', (tester) async {
-      await tester.pumpWidget(_app(path));
-      await tester.pumpAndSettle();
-      expect(find.text('Coming in a later task.'), findsOneWidget);
-    });
-  }
-
   testWidgets('tapping Calendar navigates', (tester) async {
     tester.view.physicalSize = const Size(500, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    await tester.pumpWidget(_app('/app/search'));
+    await tester.pumpWidget(_app('/app/settings'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Calendar'));
     await tester.pumpAndSettle();

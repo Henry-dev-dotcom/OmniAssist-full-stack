@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     auth_client_id: str = ""
     auth_client_secret: str = ""
     cors_origins: list[str] = []
+    export_link_ttl_minutes: int = 60  # download links expire (Spec 4.11)
 
     @model_validator(mode="after")
     def _require_production_config(self) -> Self:

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 
@@ -40,5 +41,13 @@ Future<void> saveTextFile(String fileName, String text, String mimeType) =>
     FilePicker.saveFile(
       fileName: fileName,
       bytes: utf8.encode(text),
+      mimeType: mimeType,
+    );
+
+/// Saves or downloads binary content, e.g. a ZIP export.
+Future<void> saveBytesFile(String fileName, List<int> bytes, String mimeType) =>
+    FilePicker.saveFile(
+      fileName: fileName,
+      bytes: Uint8List.fromList(bytes),
       mimeType: mimeType,
     );

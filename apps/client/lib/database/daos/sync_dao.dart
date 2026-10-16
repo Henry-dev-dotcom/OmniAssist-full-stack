@@ -536,4 +536,119 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
       ),
     );
   }
+
+  Stream<List<ConflictRecord>> watchOpenConflicts() =>
+      (select(conflictRecords)
+            ..where((c) => c.status.equals('open'))
+            ..orderBy([(c) => OrderingTerm.asc(c.createdAt)]))
+          .watch();
+
+  /// Uploads the server refused; they wait for the user to retry or discard them.
+  Stream<List<OutboxMutation>> watchRejected() =>
+      (select(outboxMutations)
+            ..where((m) => m.status.equals('rejected'))
+            ..orderBy([(m) => OrderingTerm.asc(m.createdAt)]))
+          .watch();
+
+  Future<void> retryRejected(String mutationId) =>
+      (update(
+        outboxMutations,
+      )..where((m) => m.mutationId.equals(mutationId))).write(
+        const OutboxMutationsCompanion(
+          status: Value('pending'),
+          attemptCount: Value(0),
+          nextAttemptAt: Value(null),
+        ),
+      );
+
+  Future<void> discardRejected(String mutationId) => (delete(
+    outboxMutations,
+  )..where((m) => m.mutationId.equals(mutationId))).go();
+
+  /// Settles a conflict in one transaction (Spec 4.12): [server] values are applied
+  /// here, and [local] values go up as a new mutation based on the server's version.
+  Future<void> resolveConflict({
+    required ConflictRecord conflict,
+    required Map<String, Object?> local,
+    required Map<String, Object?> server,
+    required int serverVersion,
+    required String mutationId,
+    required DateTime now,
+  }) => transaction(() async {
+    final stuck =
+        await (select(outboxMutations)..where(
+              (m) =>
+                  m.entityId.equals(conflict.entityId) &
+                  m.status.equals('conflict'),
+            ))
+            .get();
+    final serverJson = jsonDecode(conflict.serverJson) as Map<String, dynamic>;
+    final ws =
+        stuck.firstOrNull?.workspaceId ?? serverJson['workspace_id'] as String;
+    Future<void> apply(Map<String, Object?> payload) async {
+      final change = {
+        'entity_type': conflict.entityType,
+        'entity_id': conflict.entityId,
+        'workspace_id': ws,
+        'operation': 'update',
+        'entity_version': serverVersion,
+        'payload': payload,
+      };
+      switch (conflict.entityType) {
+        case 'project':
+          await _applyProjectChange(change, now);
+        case 'task':
+          await _applyTaskChange(change, now);
+        case 'time_block':
+          await _applyTimeBlockChange(change, now);
+        default:
+          await _applyRecordChange(change, now);
+      }
+    }
+
+    await (delete(outboxMutations)..where(
+          (m) =>
+              m.entityId.equals(conflict.entityId) &
+              m.status.equals('conflict'),
+        ))
+        .go();
+    await apply({...server, ...local});
+    if (local.isNotEmpty) {
+      await into(outboxMutations).insert(
+        OutboxMutationsCompanion.insert(
+          mutationId: mutationId,
+          workspaceId: ws,
+          entityType: conflict.entityType,
+          entityId: conflict.entityId,
+          operation: 'update',
+          payload: jsonEncode(local),
+          baseVersion: Value(serverVersion),
+          createdAt: now,
+        ),
+      );
+    }
+    await (update(
+      conflictRecords,
+    )..where((c) => c.id.equals(conflict.id))).write(
+      ConflictRecordsCompanion(
+        status: const Value('resolved'),
+        resolvedAt: Value(now),
+      ),
+    );
+    final state = local.isEmpty ? 'synced' : 'pending_update';
+    switch (conflict.entityType) {
+      case 'project':
+        await (update(projects)..where((p) => p.id.equals(conflict.entityId)))
+            .write(ProjectsCompanion(syncState: Value(state)));
+      case 'task':
+        await (update(tasks)..where((t) => t.id.equals(conflict.entityId)))
+            .write(TasksCompanion(syncState: Value(state)));
+      case 'time_block':
+        await (update(timeBlocks)..where((b) => b.id.equals(conflict.entityId)))
+            .write(TimeBlocksCompanion(syncState: Value(state)));
+      default:
+        await (update(records)..where((r) => r.id.equals(conflict.entityId)))
+            .write(RecordsCompanion(syncState: Value(state)));
+    }
+  });
 }

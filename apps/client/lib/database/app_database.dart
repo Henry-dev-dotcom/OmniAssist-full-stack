@@ -51,4 +51,11 @@ class AppDatabase extends _$AppDatabase {
 
   @override
   MigrationStrategy get migration => appMigrations(this);
+
+  /// Removes every row on this device, children before parents so foreign keys hold.
+  Future<void> wipe() => transaction(() async {
+    for (final table in allTables.toList().reversed) {
+      await delete(table).go();
+    }
+  });
 }

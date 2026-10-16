@@ -19,7 +19,13 @@ SECRET = "s" * 40
 
 def provider(clock: list[float] | None = None) -> LocalProvider:
     t = clock or [0.0]
-    return LocalProvider(secret=SECRET, sessions=None, clock=lambda: t[0])  # type: ignore[arg-type]
+    p = LocalProvider(secret=SECRET, sessions=None, clock=lambda: t[0])  # type: ignore[arg-type]
+
+    async def exists(subject: str) -> bool:
+        return subject != "local|deleted"
+
+    p._exists = exists  # type: ignore[method-assign]
+    return p
 
 
 def token(**over: Any) -> str:
@@ -62,8 +68,9 @@ async def test_valid_token_gives_identity() -> None:
             "HS256",
         ),
         "not-a-jwt",
+        token(sub="local|deleted"),
     ],
-    ids=["expired", "issuer", "audience", "no-email", "wrong-key", "garbage"],
+    ids=["expired", "issuer", "audience", "no-email", "wrong-key", "garbage", "deleted"],
 )
 async def test_bad_tokens_are_rejected(bad: str) -> None:
     with pytest.raises(DomainError) as e:

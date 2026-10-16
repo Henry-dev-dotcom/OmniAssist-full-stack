@@ -5,11 +5,14 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/sign_in_screen.dart';
 import '../features/notifications/notification_center_screen.dart';
 import '../features/projects/projects_screen.dart';
+import '../features/settings/onboarding_page.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/sync/conflict_page.dart';
 import '../features/sync/sync_center_screen.dart';
 import '../features/tasks/inbox_screen.dart';
 import '../features/tasks/task_detail_screen.dart';
 import '../features/time_blocks/calendar_screen.dart';
+import '../features/search/search_page.dart';
 import '../features/today/today_page.dart';
 import '../features/analyses/analysis_page.dart';
 import '../features/experiments/experiment_page.dart';
@@ -18,7 +21,6 @@ import '../features/projects/project_page.dart';
 import '../features/reviews/review_board_page.dart';
 import '../features/reviews/review_item_page.dart';
 import '../shared_widgets/app_scaffold.dart';
-import '../shared_widgets/async_state_view.dart';
 
 /// Primary navigation. Mobile shows the first four plus More (settings).
 const navDestinations = <NavDestination>[
@@ -28,12 +30,6 @@ const navDestinations = <NavDestination>[
   NavDestination('Inbox', Icons.inbox_outlined, '/app/inbox'),
   NavDestination('More', Icons.more_horiz, '/app/settings'),
 ];
-
-GoRoute _placeholder(String path, String title) => GoRoute(
-  path: path,
-  builder: (_, _) =>
-      EmptyStateView(title: title, message: 'Coming in a later task.'),
-);
 
 /// [signedIn]: null while restoring (no redirect), false = go to sign-in.
 /// When omitted (tests, previews) the router never redirects.
@@ -54,7 +50,7 @@ GoRouter buildRouter({
   routes: [
     // Auth group. Onboarding arrives with a later task.
     GoRoute(path: '/sign-in', builder: (_, _) => const SignInScreen()),
-    _placeholder('/onboarding', 'Onboarding'),
+    GoRoute(path: '/onboarding', builder: (_, _) => const OnboardingPage()),
     ShellRoute(
       builder: (_, state, child) =>
           AppScaffold(location: state.uri.path, child: child),
@@ -96,12 +92,17 @@ GoRouter buildRouter({
           path: '/app/experiments/:id',
           builder: (_, st) => ExperimentPage(entryId: st.pathParameters['id']!),
         ),
+        GoRoute(
+          path: '/app/sync/conflicts/:id',
+          builder: (_, st) =>
+              ConflictPage(conflictId: st.pathParameters['id']!),
+        ),
         GoRoute(path: '/app/inbox', builder: (_, _) => const InboxScreen()),
         GoRoute(
           path: '/app/projects',
           builder: (_, _) => const ProjectsScreen(),
         ),
-        _placeholder('/app/search', 'Search'),
+        GoRoute(path: '/app/search', builder: (_, _) => const SearchPage()),
         GoRoute(
           path: '/app/notifications',
           builder: (_, _) => const NotificationCenterScreen(),

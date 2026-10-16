@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'auth_controller.dart';
 
@@ -55,6 +56,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       _busy = false;
       _error = err?.message;
     });
+    // A new account starts with the optional setup (S03).
+    if (err == null && _creating) context.go('/onboarding');
   }
 
   @override

@@ -14,6 +14,8 @@ from src.domain.common.records import RecordRepo
 from src.domain.experiments import repository as experiments
 from src.domain.milestones import repository as milestones
 from src.domain.reviews import repository as reviews
+from src.domain.search import repository as search_repo
+from src.domain.search.repository import SOURCES
 from src.domain.workspaces.service import require_member
 
 router = APIRouter(tags=["research"])
@@ -141,4 +143,29 @@ async def list_activity(
         [{**r, "id": str(r["id"]), "entity_id": str(r["entity_id"]),
           "actor_id": str(r["actor_id"]), "created_at": r["created_at"].isoformat()}
          for r in rows],
+    )  # fmt: skip
+
+
+@router.get("/search")
+async def search(
+    request: Request,
+    actor: CurrentActor,
+    session: Session,
+    workspace_id: WorkspaceId,
+    q: Annotated[str, Query(min_length=1, max_length=200)],
+    type: Annotated[list[str] | None, Query()] = None,
+    project_id: ProjectId = None,
+    status: Annotated[str | None, Query(max_length=40)] = None,
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> dict[str, Any]:
+    await require_member(session, workspace_id, actor.user_id)
+    types = [t for t in type or [] if t in SOURCES] or None
+    rows = await search_repo.search(
+        session, workspace_id, q.strip(), types, project_id, status, limit
+    )
+    return envelope(
+        request,
+        [{**r, "id": str(r["id"]),
+          "project_id": str(r["project_id"]) if r["project_id"] else None,
+          "updated_at": r["updated_at"].isoformat()} for r in rows],
     )  # fmt: skip

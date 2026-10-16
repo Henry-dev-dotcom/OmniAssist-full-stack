@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Literal
 
 from fastapi import APIRouter, Request
 from pydantic import BaseModel, Field, field_validator
@@ -43,8 +43,22 @@ def _user_out(u: dict[str, Any]) -> dict[str, Any]:
 
 @router.get("/me")
 async def get_me(request: Request, actor: CurrentActor, session: Session) -> dict[str, Any]:
-    row = await repository.update_profile(session, actor.user_id, {})
-    return envelope(request, _user_out(row))
+    return envelope(request, _user_out(await repository.get(session, actor.user_id)))
+
+
+class DeleteAccountIn(BaseModel):
+    # Typed by the user, so a stray request can never delete an account.
+    confirm: Literal["DELETE"]
+
+
+@router.delete("/me")
+async def delete_me(
+    body: DeleteAccountIn, request: Request, actor: CurrentActor, session: Session
+) -> dict[str, Any]:
+    subject = await repository.subject_of(session, actor.user_id)
+    await repository.delete_account(session, actor.user_id, subject)
+    await session.commit()
+    return envelope(request, {"deleted": True})
 
 
 @router.patch("/me")

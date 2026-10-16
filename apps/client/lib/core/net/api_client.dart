@@ -29,7 +29,25 @@ class ApiClient {
       _send('POST', path, body: body, auth: auth);
   Future<dynamic> patch(String path, Object body) =>
       _send('PATCH', path, body: body);
-  Future<dynamic> delete(String path) => _send('DELETE', path);
+  Future<dynamic> delete(String path, {Object? body}) =>
+      _send('DELETE', path, body: body);
+
+  /// Raw bytes from a self-authorizing URL (signed export links); no token is sent.
+  Future<List<int>> getBytes(String path) async {
+    try {
+      final res = await _http
+          .get(Uri.parse('$baseUrl$path'))
+          .timeout(const Duration(seconds: 60));
+      if (res.statusCode == 200) return res.bodyBytes;
+    } on Exception {
+      // Reported below like any other failure.
+    }
+    throw const AppError(
+      code: ErrorCode.dependencyUnavailable,
+      message: 'The download failed or the link expired. Try the export again.',
+      retryable: true,
+    );
+  }
 
   Future<dynamic> _send(
     String method,
