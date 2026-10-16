@@ -16,6 +16,8 @@ from src.domain.common.errors import DomainError, ErrorCode
 from src.domain.common.records import RecordRepo
 from src.domain.experiments import repository as experiments
 from src.domain.experiments.schemas import ExperimentCreate, ExperimentOut, ExperimentUpdate
+from src.domain.funding import repository as funding
+from src.domain.funding.schemas import FundingCreate, FundingOut, FundingUpdate
 from src.domain.milestones import repository as milestones
 from src.domain.milestones.schemas import MilestoneCreate, MilestoneOut, MilestoneUpdate
 from src.domain.projects import repository as projects
@@ -80,6 +82,7 @@ ENTITIES = {
     "review_item": Entity(reviews.items, ReviewItemCreate, ReviewItemUpdate, ReviewItemOut),
     "analysis_record": Entity(analyses.repo, AnalysisCreate, AnalysisUpdate, AnalysisOut),
     "experiment_entry": Entity(experiments.repo, ExperimentCreate, ExperimentUpdate, ExperimentOut),
+    "funding_opportunity": Entity(funding.repo, FundingCreate, FundingUpdate, FundingOut),
 }
 
 

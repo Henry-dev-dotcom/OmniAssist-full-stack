@@ -19,6 +19,7 @@ import '../features/analyses/analysis_page.dart';
 import '../features/experiments/experiment_page.dart';
 import '../features/milestones/milestone_page.dart';
 import '../features/projects/project_page.dart';
+import '../features/funding/funding_screen.dart';
 import '../features/reviews/review_board_page.dart';
 import '../features/reviews/review_item_page.dart';
 import '../shared_widgets/app_scaffold.dart';
@@ -26,6 +27,7 @@ import '../shared_widgets/app_scaffold.dart';
 /// Primary navigation. Mobile shows the first four plus More (settings).
 const navDestinations = <NavDestination>[
   NavDestination('Today', Icons.today_outlined, Icons.today, '/app/today'),
+  NavDestination('Funding', Icons.account_balance_outlined, Icons.account_balance, '/app/funding'),
   NavDestination(
     'Calendar',
     Icons.calendar_month_outlined,
@@ -67,6 +69,7 @@ GoRouter buildRouter({
           AppScaffold(location: state.uri.path, child: child),
       routes: [
         GoRoute(path: '/app/today', builder: (_, _) => const TodayPage()),
+        GoRoute(path: '/app/funding', builder: (_, _) => const FundingScreen()),
         GoRoute(
           path: '/app/calendar',
           builder: (_, _) => const CalendarScreen(),

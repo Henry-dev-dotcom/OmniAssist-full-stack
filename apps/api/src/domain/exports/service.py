@@ -34,6 +34,7 @@ TABLES: dict[str, str] = {
     "review_item_events": """SELECT e.* FROM review_item_events e
         JOIN review_items i ON i.id = e.review_item_id WHERE i.workspace_id = :w""",
     "analysis_records": "SELECT * FROM analysis_records WHERE workspace_id = :w",
+    "funding_opportunities": "SELECT * FROM funding_opportunities WHERE workspace_id = :w",
     "experiment_entries": "SELECT * FROM experiment_entries WHERE workspace_id = :w",
     "experiment_revisions": """SELECT v.* FROM experiment_revisions v
         JOIN experiment_entries e ON e.id = v.entry_id WHERE e.workspace_id = :w""",

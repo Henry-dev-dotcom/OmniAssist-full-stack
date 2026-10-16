@@ -12,6 +12,7 @@ from src.domain.analyses import repository as analyses
 from src.domain.analyses.schemas import AnalysisStatus
 from src.domain.common.records import RecordRepo
 from src.domain.experiments import repository as experiments
+from src.domain.funding import repository as funding
 from src.domain.milestones import repository as milestones
 from src.domain.reviews import repository as reviews
 from src.domain.search import repository as search_repo
@@ -99,6 +100,14 @@ async def list_analyses(
         request, actor, session, analyses.repo, workspace_id,
         project_id=project_id, status=status.value if status else None,
     )  # fmt: skip
+
+
+@router.get("/funding-opportunities")
+async def list_funding_opportunities(
+    request: Request, actor: CurrentActor, session: Session,
+    workspace_id: WorkspaceId, project_id: ProjectId = None,
+) -> dict[str, Any]:
+    return await _list(request, actor, session, funding.repo, workspace_id, project_id=project_id)
 
 
 @router.get("/experiment-entries")

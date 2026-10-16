@@ -26,6 +26,10 @@ SOURCES: dict[str, tuple[str, str, str, str | None, tuple[str, ...]]] = {
         "experiment_entries", "title", "project_id", "state",
         ("title", "objective", "observations", "result_summary", "next_steps"),
     ),
+    "funding_opportunity": (
+        "funding_opportunities", "title", "project_id", "status",
+        ("title", "organisation", "category", "eligibility_notes", "next_action"),
+    ),
 }  # fmt: skip
 
 

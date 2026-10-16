@@ -66,6 +66,7 @@ _DATA = (
     "WHERE r.id = st.review_id AND r.workspace_id = ANY(:ws)",
     "DELETE FROM reviews WHERE workspace_id = ANY(:ws)",
     "DELETE FROM analysis_records WHERE workspace_id = ANY(:ws)",
+    "DELETE FROM funding_opportunities WHERE workspace_id = ANY(:ws)",
     "DELETE FROM experiment_entries WHERE workspace_id = ANY(:ws)",
     "UPDATE milestones SET parent_id = NULL WHERE workspace_id = ANY(:ws)",
     "DELETE FROM milestones WHERE workspace_id = ANY(:ws)",

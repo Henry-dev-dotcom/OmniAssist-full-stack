@@ -122,7 +122,10 @@ async def update(s: AsyncSession, project_id: uuid.UUID, changes: dict[str, Any]
     return updated
 
 
-LINKED = ("tasks", "milestones", "reviews", "analysis_records", "experiment_entries")
+LINKED = (
+    "tasks", "milestones", "reviews", "analysis_records", "experiment_entries",
+    "funding_opportunities",
+)
 
 
 async def tombstone(s: AsyncSession, project_id: uuid.UUID) -> None:

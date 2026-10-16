@@ -21,7 +21,7 @@ const _desktopBreakpoint = 900.0;
 const keyboardShortcuts = <(String, String)>[
   ('Ctrl + K', 'Search'),
   ('Alt + N', 'Quick capture to the Inbox'),
-  ('Alt + 1 … 5', 'Today, Calendar, Projects, Inbox, More'),
+  ('Alt + 1 … 6', 'Today, Funding, Calendar, Projects, Inbox, More'),
   ('Space', 'Toggle the focused checkbox, e.g. complete a task'),
 ];
 
@@ -52,6 +52,7 @@ class AppScaffold extends ConsumerWidget {
         LogicalKeyboardKey.digit3,
         LogicalKeyboardKey.digit4,
         LogicalKeyboardKey.digit5,
+        LogicalKeyboardKey.digit6,
       ].indexed)
         SingleActivator(key, alt: true): () => _go(context, i),
     },

@@ -11,7 +11,8 @@ API_DIR = Path(__file__).resolve().parents[2]
 
 CORE_TABLES = {
     "users", "workspaces", "workspace_members", "projects", "milestones", "tasks", "tags",
-    "task_tags", "time_blocks", "reviews", "review_stages", "review_items", "analysis_records",
+    "task_tags", "time_blocks", "reviews", "review_stages", "review_items",
+    "analysis_records", "funding_opportunities",
     "experiment_entries", "experiment_revisions", "notifications", "attachments",
     "activity_events", "audit_events", "sync_changes", "sync_mutations", "sync_conflicts",
 }  # fmt: skip
