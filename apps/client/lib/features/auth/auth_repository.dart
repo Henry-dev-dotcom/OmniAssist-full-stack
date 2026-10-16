@@ -116,6 +116,12 @@ class AuthRepository implements TokenSource {
   }
 
   /// Drops tokens without calling the server (the account is already gone).
+  /// Makes [workspaceId] the one the app shows, also after a restart.
+  Future<Session> useWorkspace(String userId, String workspaceId) async {
+    await _store.writeSession('$userId $workspaceId');
+    return Session(userId: userId, workspaceId: workspaceId);
+  }
+
   /// Changes the password; this device keeps a fresh session, others must sign in again.
   /// Returns an error to show, or null.
   Future<AppError?> changePassword(String current, String next) async {
@@ -139,11 +145,16 @@ class AuthRepository implements TokenSource {
   /// First sign-in creates a default workspace so the app always has a scope.
   Future<Session> _loadSession() async {
     final me = await _api.get('/me') as Map<String, dynamic>;
-    final list = await _api.get('/workspaces') as List<dynamic>;
-    final ws = list.isNotEmpty
-        ? list.first as Map<String, dynamic>
-        : await _api.post('/workspaces', {'name': 'Personal'})
-              as Map<String, dynamic>;
+    final list = [
+      for (final w in await _api.get('/workspaces') as List<dynamic>)
+        w as Map<String, dynamic>,
+    ];
+    // Reopen the workspace chosen last time, while it still exists.
+    final last = (await _cachedSession())?.workspaceId;
+    final ws = list.isEmpty
+        ? await _api.post('/workspaces', {'name': 'Personal'})
+              as Map<String, dynamic>
+        : list.firstWhere((w) => w['id'] == last, orElse: () => list.first);
     final session = Session(
       userId: me['id'] as String,
       workspaceId: ws['id'] as String,

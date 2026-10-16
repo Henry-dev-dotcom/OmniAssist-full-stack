@@ -53,6 +53,15 @@ class AuthController extends AsyncNotifier<Session?> {
     state = const AsyncData(null);
   }
 
+  /// Switches every screen to [workspaceId]; its data is already on the device.
+  Future<void> switchWorkspace(String workspaceId) async {
+    final user = state.value?.userId;
+    if (user == null) return;
+    state = AsyncData(
+      await ref.read(authRepositoryProvider).useWorkspace(user, workspaceId),
+    );
+  }
+
   /// Deletes the account on the server, then everything on this device.
   Future<AppError?> deleteAccount() async {
     try {

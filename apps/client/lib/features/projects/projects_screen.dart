@@ -28,6 +28,7 @@ class ProjectsScreen extends ConsumerStatefulWidget {
 
 class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
   bool _archived = false;
+  String _query = '';
 
   Future<void> _pull() => ref.read(syncControllerProvider.notifier).syncNow();
 
@@ -82,6 +83,17 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                 TextButton(onPressed: _pull, child: const Text('Retry')),
               ],
             ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: TextField(
+              onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                labelText: 'Search projects',
+                isDense: true,
+              ),
+            ),
+          ),
           Expanded(
             child: projects.when(
               loading: () => const Center(child: CircularProgressIndicator()),
@@ -89,46 +101,65 @@ class _ProjectsScreenState extends ConsumerState<ProjectsScreen> {
                 title: 'Cannot load projects',
                 message: 'Restart the app. Your data is safe.',
               ),
-              data: (rows) => rows.isEmpty
-                  ? EmptyStateView(
-                      title: archived
-                          ? 'No archived projects'
-                          : 'No projects yet',
-                      message: archived
-                          ? 'Archived projects appear here.'
-                          : 'Tap + to add your first project.',
-                    )
-                  : ListView(
-                      children: [
-                        for (final p in rows)
-                          ListTile(
-                            title: Text(p.name),
-                            onTap: () => context.push('/app/projects/${p.id}'),
-                            subtitle: Text(
-                              '${p.category} · ${p.progressValue}%'
-                              '${p.syncState == 'synced' ? '' : ' · waiting to sync'}',
-                            ),
-                            trailing: IconButton(
-                              tooltip: archived ? 'Restore' : 'Archive',
-                              icon: Icon(
-                                archived
-                                    ? Icons.unarchive_outlined
-                                    : Icons.archive_outlined,
+              data: (all) {
+                final rows = [
+                  for (final p in all)
+                    if (_query.isEmpty ||
+                        '${p.name} ${p.description ?? ''} ${p.category}'
+                            .toLowerCase()
+                            .contains(_query))
+                      p,
+                ];
+                return rows.isEmpty
+                    ? EmptyStateView(
+                        title: _query.isNotEmpty
+                            ? 'No matching projects'
+                            : archived
+                            ? 'No archived projects'
+                            : 'No projects yet',
+                        message: _query.isNotEmpty
+                            ? 'Try another word, or clear the search.'
+                            : archived
+                            ? 'Archived projects appear here.'
+                            : 'A project groups a thesis, grant or experiment with its work.',
+                        actionLabel: archived || _query.isNotEmpty
+                            ? null
+                            : 'New project',
+                        onAction: archived || _query.isNotEmpty ? null : _add,
+                      )
+                    : ListView(
+                        children: [
+                          for (final p in rows)
+                            ListTile(
+                              title: Text(p.name),
+                              onTap: () =>
+                                  context.push('/app/projects/${p.id}'),
+                              subtitle: Text(
+                                '${p.category} · ${p.progressValue}%'
+                                '${p.syncState == 'synced' ? '' : ' · waiting to sync'}',
                               ),
-                              onPressed: () async {
-                                await ref
-                                    .read(projectsRepositoryProvider)
-                                    .setArchived(p.id, !archived);
-                                unawaited(
-                                  ref
-                                      .read(syncControllerProvider.notifier)
-                                      .syncNow(),
-                                );
-                              },
+                              trailing: IconButton(
+                                tooltip: archived ? 'Restore' : 'Archive',
+                                icon: Icon(
+                                  archived
+                                      ? Icons.unarchive_outlined
+                                      : Icons.archive_outlined,
+                                ),
+                                onPressed: () async {
+                                  await ref
+                                      .read(projectsRepositoryProvider)
+                                      .setArchived(p.id, !archived);
+                                  unawaited(
+                                    ref
+                                        .read(syncControllerProvider.notifier)
+                                        .syncNow(),
+                                  );
+                                },
+                              ),
                             ),
-                          ),
-                      ],
-                    ),
+                        ],
+                      );
+              },
             ),
           ),
         ],

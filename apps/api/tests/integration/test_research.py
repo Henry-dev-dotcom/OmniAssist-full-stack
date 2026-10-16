@@ -238,3 +238,38 @@ async def test_task_tags_rules_and_subtasks(client: httpx.AsyncClient) -> None: 
     assert [h["id"] for h in hits] == [a]  # title still says meeting
     hits = await get(client, "/search", workspace_id=ws, q="lab")
     assert {h["id"] for h in hits} == {a}
+
+
+async def test_workspace_rename_archive_delete(client: httpx.AsyncClient) -> None:  # noqa: F811
+    lab = await make_ws(client, "ada", "Lab")
+    pid = await project(client, lab)
+    r = await client.patch(
+        f"/workspaces/{lab}", json={"name": "Lab 2", "archived": True}, headers=auth("ada")
+    )
+    assert r.status_code == 200 and r.json()["data"]["name"] == "Lab 2"
+    assert r.json()["data"]["archived_at"] is not None
+    r = await client.patch(f"/workspaces/{lab}", json={"archived": False}, headers=auth("ada"))
+    assert r.json()["data"]["archived_at"] is None
+    # Someone else cannot touch it; the only workspace cannot be deleted.
+    r = await client.patch(f"/workspaces/{lab}", json={"name": "x"}, headers=auth("bob"))
+    assert r.status_code == 404
+    only = await client.request(
+        "DELETE", f"/workspaces/{lab}", json={"confirm_name": "Lab 2"}, headers=auth("ada")
+    )
+    assert only.status_code == 422
+    await make_ws(client, "ada", "Personal")
+    typo = await client.request(
+        "DELETE", f"/workspaces/{lab}", json={"confirm_name": "lab 2"}, headers=auth("ada")
+    )
+    assert typo.status_code == 400
+    r = await client.request(
+        "DELETE", f"/workspaces/{lab}", json={"confirm_name": "Lab 2"}, headers=auth("ada")
+    )
+    assert r.status_code == 200
+    names = [
+        w["name"] for w in (await client.get("/workspaces", headers=auth("ada"))).json()["data"]
+    ]
+    assert names == ["Personal"]
+    r = await client.get("/projects", params={"workspace_id": lab}, headers=auth("ada"))
+    assert r.status_code in (403, 404)
+    assert pid  # its project went with it

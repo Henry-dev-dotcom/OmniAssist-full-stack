@@ -7,6 +7,7 @@ import '../features/notifications/notification_center_screen.dart';
 import '../features/projects/projects_screen.dart';
 import '../features/settings/onboarding_page.dart';
 import '../features/settings/settings_screen.dart';
+import '../features/settings/workspaces_page.dart';
 import '../features/sync/conflict_page.dart';
 import '../features/sync/sync_center_screen.dart';
 import '../features/tasks/inbox_screen.dart';
@@ -96,6 +97,10 @@ GoRouter buildRouter({
           path: '/app/sync/conflicts/:id',
           builder: (_, st) =>
               ConflictPage(conflictId: st.pathParameters['id']!),
+        ),
+        GoRoute(
+          path: '/app/workspaces',
+          builder: (_, _) => const WorkspacesPage(),
         ),
         GoRoute(path: '/app/inbox', builder: (_, _) => const InboxScreen()),
         GoRoute(

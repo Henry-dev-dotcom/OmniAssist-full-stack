@@ -5,8 +5,8 @@ Source of task detail: `OmniAssist — Tasks.md` (42 tasks, 8 phases). Status as
 Status key: **Done** = built, and its server and client parts pass their tests.
 **Done, with limits** = the acceptance criteria are met, with the stated gap.
 
-Checks: 182 API tests pass against PostgreSQL (ruff and mypy clean), including the two MVP
-journey tests. 122 client tests pass (`flutter analyze` clean). The web app was checked in a
+Checks: 183 API tests pass against PostgreSQL (ruff and mypy clean), including the two MVP
+journey tests. 123 client tests pass (`flutter analyze` clean). The web app was checked in a
 browser: sign-up, sign-in, capture, and opening offline with both servers stopped.
 
 ## Phase 1: Repository and project foundation (Tasks 1-7)
@@ -26,8 +26,8 @@ browser: sign-up, sign-in, capture, and opening offline with both servers stoppe
 | Task | Name | Status |
 | --- | --- | --- |
 | 8 | Authentication provider adapter | Done: built-in email/password (decision 0002); OIDC by configuration |
-| 9 | User profile and workspace ownership | Done: onboarding/profile screen (time zone, work hours, reminders) |
-| 10 | Project CRUD and local projection | Done: list, overview page, edit, archive, delete (empty projects only) |
+| 9 | User profile and workspace ownership | Done: onboarding/profile screen; workspaces can be switched, created, renamed, archived and deleted |
+| 10 | Project CRUD and local projection | Done: list with search, overview page, edit, archive, delete (empty projects only) |
 
 ## Phase 3: Local-first sync foundation (Tasks 11-16)
 

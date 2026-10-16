@@ -139,6 +139,25 @@ void main() {
       expect(await store.readSession(), 'u1 w1');
     });
 
+    test(
+      'the chosen workspace is reopened, or the first if it is gone',
+      () async {
+        http.Response two(http.Request r) => r.url.path == '/api/v1/workspaces'
+            ? _ok([
+                {'id': 'w1'},
+                {'id': 'w2'},
+              ])
+            : happy(r);
+        final repo = build(two);
+        await repo.useWorkspace('u1', 'w2');
+        final s = (await repo.signIn('a@b.co', 'pw') as Ok<Session>).value;
+        expect(s.workspaceId, 'w2');
+        await repo.useWorkspace('u1', 'deleted');
+        final t = (await repo.signIn('a@b.co', 'pw') as Ok<Session>).value;
+        expect(t.workspaceId, 'w1');
+      },
+    );
+
     test('changing the password keeps this device signed in', () async {
       final repo = build(
         (r) => r.url.path == '/api/v1/auth/change-password'

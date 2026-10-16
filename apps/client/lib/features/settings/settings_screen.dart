@@ -23,6 +23,12 @@ class SettingsScreen extends ConsumerWidget {
     body: ListView(
       children: [
         ListTile(
+          leading: const Icon(Icons.workspaces_outline),
+          title: const Text('Workspaces'),
+          subtitle: const Text('Switch, create, rename, archive or delete'),
+          onTap: () => context.push('/app/workspaces'),
+        ),
+        ListTile(
           leading: const Icon(Icons.person_outline),
           title: const Text('Profile and working hours'),
           subtitle: const Text('Name, time zone, work hours, reminders'),
