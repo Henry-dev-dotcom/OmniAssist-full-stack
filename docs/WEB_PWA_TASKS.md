@@ -43,10 +43,10 @@ This roadmap tracks the provided [Web/PWA task list PDF](OmniAssist-Web-PWA-Task
 
 | Task | Outcome | Status |
 | --- | --- | --- |
-| 17 | Review board and CSV flows | Queued |
-| 18 | Analysis ledger UI | Queued |
-| 19 | Experiment log UI | Queued |
-| 20 | Search, notifications, export, and settings | Queued |
+| 17 | Review board and CSV flows | **Complete** |
+| 18 | Analysis ledger UI | **Complete** |
+| 19 | Experiment log UI | **Complete** |
+| 20 | Search, notifications, export, and settings | **Complete** |
 
 ## Phase 5: Quality and PWA
 

@@ -8,7 +8,7 @@
 - [x] **Task 4 — Contracts, shared types, and CI.** Added `@omniassist/contracts` envelopes, error codes and domain types; a typed API client that preserves request IDs; separate web/API workflows; and parity/runtime tests.
 
 ## In progress
-- [ ] Tasks 17–20 — Research frontend.
+- [x] **Tasks 17–20 — Research frontend.** Added project-scoped review boards with editable stages, stage history and bounded CSV preview/import/export; an editable R/Python analysis ledger with status transitions and next-action tasks; experiment templates, local draft recovery, finalization and revision access; and search, notification actions/preferences, background export controls, profile settings and confirmed account deletion. The web client remains online-first (offline mutations/outbox are Phase 5 scope).
 
 ## Completed in Phase 2
 
