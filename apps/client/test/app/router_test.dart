@@ -30,6 +30,40 @@ void main() {
     expect(find.text('Calendar'), findsWidgets);
   });
 
+  for (final (name, theme) in [
+    ('light', buildTheme()),
+    ('dark', buildDarkTheme()),
+  ]) {
+    testWidgets('shell survives 200% text on a phone ($name)', (tester) async {
+      tester.view.physicalSize = const Size(375, 812);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            routerProvider.overrideWithValue(
+              buildRouter(initialLocation: '/app/settings'),
+            ),
+          ],
+          child: Consumer(
+            builder: (_, ref, _) => MaterialApp.router(
+              theme: theme,
+              routerConfig: ref.watch(routerProvider),
+              builder: (ctx, child) => MediaQuery(
+                data: MediaQuery.of(
+                  ctx,
+                ).copyWith(textScaler: const TextScaler.linear(2)),
+                child: child!,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull); // no RenderFlex overflow
+    });
+  }
+
   testWidgets('Alt+2 opens Calendar from the keyboard', (tester) async {
     tester.view.physicalSize = const Size(1200, 900);
     tester.view.devicePixelRatio = 1;

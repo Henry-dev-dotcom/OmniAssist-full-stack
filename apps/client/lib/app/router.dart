@@ -25,11 +25,21 @@ import '../shared_widgets/app_scaffold.dart';
 
 /// Primary navigation. Mobile shows the first four plus More (settings).
 const navDestinations = <NavDestination>[
-  NavDestination('Today', Icons.today_outlined, '/app/today'),
-  NavDestination('Calendar', Icons.calendar_month_outlined, '/app/calendar'),
-  NavDestination('Projects', Icons.folder_outlined, '/app/projects'),
-  NavDestination('Inbox', Icons.inbox_outlined, '/app/inbox'),
-  NavDestination('More', Icons.more_horiz, '/app/settings'),
+  NavDestination('Today', Icons.today_outlined, Icons.today, '/app/today'),
+  NavDestination(
+    'Calendar',
+    Icons.calendar_month_outlined,
+    Icons.calendar_month,
+    '/app/calendar',
+  ),
+  NavDestination(
+    'Projects',
+    Icons.folder_outlined,
+    Icons.folder,
+    '/app/projects',
+  ),
+  NavDestination('Inbox', Icons.inbox_outlined, Icons.inbox, '/app/inbox'),
+  NavDestination('More', Icons.more_horiz, Icons.more_horiz, '/app/settings'),
 ];
 
 /// [signedIn]: null while restoring (no redirect), false = go to sign-in.

@@ -70,6 +70,24 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
             shrinkWrap: true,
             padding: const EdgeInsets.all(24),
             children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.hub_outlined,
+                    color: Theme.of(context).colorScheme.primary,
+                    semanticLabel: 'OmniAssist logo',
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'OmniAssist',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
               Text(
                 _creating ? 'Create account' : 'Sign in',
                 style: Theme.of(context).textTheme.headlineMedium,
@@ -104,10 +122,15 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: 12),
-                Text(
-                  _error!,
-                  key: const Key('sign-in-error'),
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                Semantics(
+                  liveRegion: true, // read out when a sign-in error appears
+                  child: Text(
+                    _error!,
+                    key: const Key('sign-in-error'),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
                 ),
               ],
               const SizedBox(height: 20),

@@ -8,9 +8,10 @@ import '../features/sync/sync_status.dart';
 import '../features/tasks/task_widgets.dart';
 
 class NavDestination {
-  const NavDestination(this.label, this.icon, this.path);
+  const NavDestination(this.label, this.icon, this.selectedIcon, this.path);
   final String label;
   final IconData icon;
+  final IconData selectedIcon; // filled variant marks the current tab (HIG tab bars)
   final String path;
 }
 
@@ -74,6 +75,7 @@ class AppScaffold extends ConsumerWidget {
                   for (final d in navDestinations)
                     NavigationRailDestination(
                       icon: Icon(d.icon),
+                      selectedIcon: Icon(d.selectedIcon),
                       label: Text(d.label),
                     ),
                 ],
@@ -106,7 +108,11 @@ class AppScaffold extends ConsumerWidget {
         onDestinationSelected: (i) => _go(context, i),
         destinations: [
           for (final d in navDestinations)
-            NavigationDestination(icon: Icon(d.icon), label: d.label),
+            NavigationDestination(
+              icon: Icon(d.icon),
+              selectedIcon: Icon(d.selectedIcon),
+              label: d.label,
+            ),
         ],
       ),
     );
