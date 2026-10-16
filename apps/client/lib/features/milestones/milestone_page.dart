@@ -384,7 +384,7 @@ class _LinkedTasks extends ConsumerWidget {
         ),
       );
       if (picked == null) return;
-      await repo.linkMilestone(picked.id, milestone.id);
+      await repo.linkMilestone(picked.id, milestone.id, projectId: projectId);
       ref.read(syncControllerProvider.notifier).syncNow();
     }
 

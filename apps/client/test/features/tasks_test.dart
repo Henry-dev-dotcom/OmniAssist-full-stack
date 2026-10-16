@@ -283,4 +283,27 @@ void main() {
       },
     );
   });
+
+  test(
+    'linking an inbox task to a milestone moves it into that project',
+    () async {
+      await db.projectDao.createWithOutbox(
+        id: 'p1',
+        workspaceId: 'w1',
+        name: 'Thesis',
+        category: 'thesis',
+        mutationId: 'mp',
+        now: clock.now(),
+      );
+      final id = await captured('Read paper');
+      await repo.linkMilestone(id, 'm1', projectId: 'p1');
+      final t = (await db.taskDao.byId(id))!;
+      expect((t.milestoneId, t.projectId, t.status), ('m1', 'p1', 'planned'));
+      await repo.linkMilestone(id, null);
+      expect(
+        (await db.taskDao.byId(id))!.projectId,
+        'p1',
+      ); // unlinking keeps the project
+    },
+  );
 }

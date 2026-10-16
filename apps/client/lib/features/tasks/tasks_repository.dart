@@ -86,9 +86,22 @@ class TasksRepository {
     return id;
   }
 
-  /// Links an existing task to a milestone, or unlinks it with null.
-  Future<void> linkMilestone(String id, String? milestoneId) =>
-      _change(id, {'milestone_id': milestoneId});
+  /// Links an existing task to a milestone, or unlinks it with null. A task without a
+  /// project joins the milestone's [projectId], so it shows on that project's page.
+  Future<void> linkMilestone(
+    String id,
+    String? milestoneId, {
+    String? projectId,
+  }) async {
+    final task = await _db.taskDao.byId(id);
+    await _change(id, {
+      'milestone_id': milestoneId,
+      if (projectId != null && task?.projectId == null) ...{
+        'project_id': projectId,
+        if (task?.status == 'inbox') 'status': 'planned',
+      },
+    });
+  }
 
   Future<void> setDone(String id, bool done) =>
       _change(id, {'status': done ? 'complete' : 'planned'});
