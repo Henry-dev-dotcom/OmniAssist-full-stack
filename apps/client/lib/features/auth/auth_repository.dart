@@ -116,6 +116,21 @@ class AuthRepository implements TokenSource {
   }
 
   /// Drops tokens without calling the server (the account is already gone).
+  /// Changes the password; this device keeps a fresh session, others must sign in again.
+  /// Returns an error to show, or null.
+  Future<AppError?> changePassword(String current, String next) async {
+    try {
+      final d = await _api.post('/auth/change-password', {
+        'current_password': current,
+        'new_password': next,
+      }) as Map<String, dynamic>;
+      await _adopt(d);
+      return null;
+    } on AppError catch (e) {
+      return e;
+    }
+  }
+
   Future<void> forget() async {
     _access = null;
     await _store.clear();

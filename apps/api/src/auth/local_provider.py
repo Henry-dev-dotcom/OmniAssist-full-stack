@@ -174,6 +174,70 @@ class LocalProvider:
             )
             await s.commit()
 
+    async def set_password(self, subject: str, password: str) -> None:
+        """Stores a new password and ends every session of the account (callers check the
+        old password, or are the operator)."""
+        if len(password) < MIN_PASSWORD_LENGTH:
+            raise DomainError(
+                ErrorCode.VALIDATION_ERROR,
+                f"Use a password with at least {MIN_PASSWORD_LENGTH} characters.",
+                {"field": "new_password"},
+            )
+        hashed = await asyncio.to_thread(hash_password, password)
+        async with self._sessions() as s:
+            row = await s.execute(
+                text(
+                    "UPDATE local_credentials SET password_hash = :h WHERE subject = :sub "
+                    "RETURNING subject"
+                ),
+                {"h": hashed, "sub": subject},
+            )
+            if row.first() is None:
+                raise unauthenticated()
+            await s.execute(
+                text(
+                    "UPDATE local_refresh_tokens SET revoked_at = now() "
+                    "WHERE subject = :sub AND revoked_at IS NULL"
+                ),
+                {"sub": subject},
+            )
+            await s.commit()
+
+    async def change_password(self, subject: str, current: str, new: str) -> AuthSession:
+        """Checks the current password, sets the new one, and returns a fresh session for
+        this device; every other device must sign in again."""
+        async with self._sessions() as s:
+            row = (
+                (
+                    await s.execute(
+                        text(
+                            "SELECT email, display_name, password_hash FROM local_credentials "
+                            "WHERE subject = :sub"
+                        ),
+                        {"sub": subject},
+                    )
+                )
+                .mappings()
+                .one_or_none()
+            )
+        key = f"change:{subject}"
+        self._check_rate(key)
+        ok = row is not None and await asyncio.to_thread(
+            verify_password, current, row["password_hash"]
+        )
+        if not ok or row is None:
+            self._failures.setdefault(key, []).append(self._clock())
+            raise DomainError(
+                ErrorCode.VALIDATION_ERROR,
+                "The current password is not right.",
+                {"field": "current_password"},
+            )
+        await self.set_password(subject, new)
+        async with self._sessions() as s:
+            session = await self._issue(s, subject, row["email"], row["display_name"])
+            await s.commit()
+        return session
+
     async def verify_access_token(self, token: str) -> Identity:
         try:
             claims: dict[str, Any] = jwt.decode(

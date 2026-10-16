@@ -82,6 +82,15 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ),
         ListTile(
+          leading: const Icon(Icons.password),
+          title: const Text('Change password'),
+          subtitle: const Text('Other devices will need to sign in again'),
+          onTap: () => showDialog<void>(
+            context: context,
+            builder: (_) => const _PasswordDialog(),
+          ),
+        ),
+        ListTile(
           leading: const Icon(Icons.logout),
           title: const Text('Sign out'),
           onTap: () => _signOut(context, ref),
@@ -312,4 +321,104 @@ class _DeleteAccountDialogState extends ConsumerState<_DeleteAccountDialog> {
       ],
     );
   }
+}
+
+class _PasswordDialog extends ConsumerStatefulWidget {
+  const _PasswordDialog();
+  @override
+  ConsumerState<_PasswordDialog> createState() => _PasswordDialogState();
+}
+
+class _PasswordDialogState extends ConsumerState<_PasswordDialog> {
+  final _current = TextEditingController();
+  final _next = TextEditingController();
+  final _again = TextEditingController();
+  String? _error;
+  bool _busy = false;
+
+  @override
+  void dispose() {
+    _current.dispose();
+    _next.dispose();
+    _again.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final problem = _current.text.isEmpty
+        ? 'Enter your current password.'
+        : _next.text.length < 8
+        ? 'Use a new password with at least 8 characters.'
+        : _next.text != _again.text
+        ? 'The new passwords do not match.'
+        : null;
+    if (problem != null) {
+      setState(() => _error = problem);
+      return;
+    }
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    final err = await ref
+        .read(authRepositoryProvider)
+        .changePassword(_current.text, _next.text);
+    if (!mounted) return;
+    if (err != null) {
+      setState(() {
+        _busy = false;
+        _error = err.message;
+      });
+      return;
+    }
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context)
+        .showSnackBar(const SnackBar(content: Text('Password changed')));
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Change password'),
+    content: AutofillGroup(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (_error != null)
+            Text(
+              _error!,
+              style: TextStyle(color: Theme.of(context).colorScheme.error),
+            ),
+          TextField(
+            controller: _current,
+            obscureText: true,
+            autofillHints: const [AutofillHints.password],
+            decoration: const InputDecoration(labelText: 'Current password'),
+          ),
+          TextField(
+            controller: _next,
+            obscureText: true,
+            autofillHints: const [AutofillHints.newPassword],
+            decoration: const InputDecoration(labelText: 'New password'),
+          ),
+          TextField(
+            controller: _again,
+            obscureText: true,
+            autofillHints: const [AutofillHints.newPassword],
+            onSubmitted: (_) => _save(),
+            decoration: const InputDecoration(labelText: 'New password again'),
+          ),
+        ],
+      ),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Cancel'),
+      ),
+      FilledButton(
+        onPressed: _busy ? null : _save,
+        child: const Text('Change'),
+      ),
+    ],
+  );
 }

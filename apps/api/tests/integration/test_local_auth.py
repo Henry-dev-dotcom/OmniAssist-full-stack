@@ -94,3 +94,40 @@ async def test_duplicate_email_and_bad_password(client: httpx.AsyncClient) -> No
     # Same answer for a wrong password and an unknown email.
     assert wrong.status_code == unknown.status_code == 401
     assert wrong.json()["error"]["message"] == unknown.json()["error"]["message"]
+
+
+async def test_change_password_ends_other_sessions(client: httpx.AsyncClient) -> None:
+    r = await client.post("/auth/register", json=ADA)
+    first = r.json()["data"]
+    other = (
+        await client.post("/auth/login", json={"email": ADA["email"], "password": ADA["password"]})
+    ).json()["data"]
+    h = {"Authorization": f"Bearer {first['access_token']}"}
+
+    bad = await client.post(
+        "/auth/change-password",
+        json={"current_password": "wrong-one", "new_password": "a-new-password"},
+        headers=h,
+    )
+    assert bad.status_code == 400
+    short = await client.post(
+        "/auth/change-password",
+        json={"current_password": ADA["password"], "new_password": "short"},
+        headers=h,
+    )
+    assert short.status_code == 400
+
+    r = await client.post(
+        "/auth/change-password",
+        json={"current_password": ADA["password"], "new_password": "a-new-password"},
+        headers=h,
+    )
+    assert r.status_code == 200, r.text
+    fresh = r.json()["data"]
+    # The other device's refresh token is dead; this device continues with a new one.
+    r = await client.post("/auth/refresh", json={"refresh_token": other["refresh_token"]})
+    assert r.status_code == 401
+    r = await client.post("/auth/refresh", json={"refresh_token": fresh["refresh_token"]})
+    assert r.status_code == 200
+    r = await client.post("/auth/login", json={"email": ADA["email"], "password": "a-new-password"})
+    assert r.status_code == 200

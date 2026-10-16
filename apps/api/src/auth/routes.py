@@ -4,8 +4,11 @@ from fastapi import APIRouter, Request
 from pydantic import BaseModel, EmailStr, Field
 
 from src.api.responses import envelope
-from src.auth.dependencies import CurrentActor, Provider
+from src.auth.dependencies import CurrentActor, Provider, Session
+from src.auth.local_provider import LocalProvider
 from src.auth.provider import AuthSession
+from src.domain.common.errors import DomainError, ErrorCode
+from src.domain.users import repository as users
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -53,3 +56,28 @@ async def logout(
 ) -> dict[str, Any]:
     await provider.logout(body.refresh_token)
     return envelope(request, {"signed_out": True})
+
+
+class PasswordChange(BaseModel):
+    current_password: str = Field(min_length=1, max_length=256)
+    new_password: str = Field(min_length=1, max_length=256)
+
+
+@router.post("/change-password")
+async def change_password(
+    body: PasswordChange,
+    request: Request,
+    provider: Provider,
+    actor: CurrentActor,
+    session: Session,
+) -> dict[str, Any]:
+    """Built-in sign-in only; a hosted provider manages passwords itself (Spec 4.1)."""
+    if not isinstance(provider, LocalProvider):
+        raise DomainError(
+            ErrorCode.DOMAIN_RULE_VIOLATION, "Change your password with your sign-in provider."
+        )
+    subject = await users.subject_of(session, actor.user_id)
+    if subject is None:
+        raise DomainError(ErrorCode.UNAUTHENTICATED, "Sign in again.")
+    s = await provider.change_password(subject, body.current_password, body.new_password)
+    return envelope(request, _session(s))

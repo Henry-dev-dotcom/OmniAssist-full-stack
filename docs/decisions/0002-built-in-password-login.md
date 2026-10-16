@@ -17,6 +17,9 @@ mode on the sign-in screen, backed by `POST /auth/register`.
 The user wants to use the app now. No provider has been picked, and a generic adapter with no provider means nobody can sign in.
 
 ## Consequences
-- No password reset or email verification yet. A forgotten password needs a database fix.
+- Users change their password in Settings (current password required; other devices are signed out).
+- No email service yet, so a forgotten password is reset by the operator:
+  `uv run python -m src.auth.reset_password user@example.com` prints a one-time temporary
+  password and ends all of that account's sessions. No email verification yet.
 - The failed-login counter is per API process (`shortcut:` comment in the provider).
 - Switching to a hosted provider later: set `OMNI_AUTH_PROVIDER=oidc` and its settings. Existing local users get new `users` rows unless their `auth_subject` is migrated to the provider's `sub`. Plan that migration when the provider is chosen.

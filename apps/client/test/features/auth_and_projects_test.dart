@@ -139,6 +139,25 @@ void main() {
       expect(await store.readSession(), 'u1 w1');
     });
 
+    test('changing the password keeps this device signed in', () async {
+      final repo = build(
+        (r) => r.url.path == '/api/v1/auth/change-password'
+            ? _ok({'access_token': 'a9', 'refresh_token': 'r9'})
+            : happy(r),
+      );
+      await repo.signIn('a@b.co', 'pw');
+      expect(await repo.changePassword('pw', 'longer-pw'), isNull);
+      expect((repo.accessToken, await store.readRefreshToken()), ('a9', 'r9'));
+    });
+
+    test('a wrong current password is reported, tokens untouched', () async {
+      final repo = build((_) => _err(400, 'VALIDATION_ERROR'));
+      await store.writeRefreshToken('keep');
+      final err = await repo.changePassword('bad', 'longer-pw');
+      expect(err?.code, ErrorCode.validationError);
+      expect(await store.readRefreshToken(), 'keep');
+    });
+
     test('expired access token refreshes once and retries', () async {
       var meCalls = 0;
       final repo = build((r) {
