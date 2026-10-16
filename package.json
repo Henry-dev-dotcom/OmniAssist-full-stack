@@ -1,0 +1,10 @@
+{
+  "name": "omniassist",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "lint": "pnpm --filter @omniassist/web lint",
+    "typecheck": "pnpm --filter @omniassist/web typecheck",
+    "build": "pnpm --filter @omniassist/web build"
+  }
+}

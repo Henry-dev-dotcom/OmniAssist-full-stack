@@ -6,6 +6,22 @@ on:
   pull_request:
 
 jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.25.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm build
+
   api:
     runs-on: ubuntu-latest
     services:
@@ -33,19 +49,3 @@ jobs:
       - run: uv run ruff format --check src tests
       - run: uv run mypy
       - run: uv run pytest -q
-
-  client:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/client
-    steps:
-      - uses: actions/checkout@v4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-      - run: flutter pub get
-      - run: dart run build_runner build --delete-conflicting-outputs
-      - run: flutter analyze
-      - run: flutter test
-      - run: flutter build web --release --no-web-resources-cdn

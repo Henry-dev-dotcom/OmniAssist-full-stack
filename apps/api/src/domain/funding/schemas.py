@@ -13,6 +13,7 @@ class FundingPriority(StrEnum):
     medium = "medium"
     low = "low"
 
+
 class FundingStatus(StrEnum):
     not_started = "not_started"
     researching = "researching"
@@ -21,6 +22,7 @@ class FundingStatus(StrEnum):
     awarded = "awarded"
     rejected = "rejected"
     not_eligible = "not_eligible"
+
 
 class _Fields(BaseModel):
     project_id: uuid.UUID | None = None
@@ -45,9 +47,11 @@ class _Fields(BaseModel):
             out["official_link"] = str(out["official_link"])
         return out
 
+
 class FundingCreate(_Fields):
     id: uuid.UUID | None = None
     workspace_id: uuid.UUID
+
 
 # The update model keeps every field optional while retaining the same validation.
 class FundingUpdate(BaseModel):
@@ -72,6 +76,7 @@ class FundingUpdate(BaseModel):
         if out.get("official_link") is not None:
             out["official_link"] = str(out["official_link"])
         return out
+
 
 class FundingOut(_Fields):
     model_config = ConfigDict(from_attributes=True)

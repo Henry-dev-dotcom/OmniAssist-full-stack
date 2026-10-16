@@ -1,67 +1,70 @@
 # OmniAssist
 
-Local-first planner and research workflow app for researchers: tasks, time blocks, a daily
-briefing, thesis and grant milestones, systematic reviews, an analysis ledger and an
-experiment log, all usable offline and synced across devices.
+Local-first planner and research workflow app for postgraduate researchers. The active client
+is a Next.js 16 App Router application; the FastAPI backend remains a separate service. The
+previous Flutter client is preserved in `apps/client-flutter-archive/` while the web/PWA
+implementation is built from the ordered work plan.
 
-The client is one Flutter codebase. The supported release is an installable web app (PWA) that
-runs on Windows, macOS and Linux and installs to Android and iOS home screens. It works offline
-and syncs when the API is reachable; native packages can be built from the same code when the
-platform SDKs and signing credentials are available. The API is FastAPI on PostgreSQL.
+## Repository structure
 
-- **Using it yourself on PC and phone: `docs/personal-setup.md`** (Windows, macOS and Linux launchers; PWA installation; Tailscale for the phone)
-- Specification: `docs/SPECIFICATION.md` · Build status: `docs/PHASES.md`
-- Decisions: `docs/decisions/` · Deploying with Vercel + Render + Neon: `docs/deployment.md` · Backups and baselines: `docs/operations.md`
+- `apps/web/` — active TypeScript, Next.js 16 and Tailwind CSS 4 application.
+- `apps/api/` — FastAPI service, PostgreSQL persistence and migrations.
+- `apps/client-flutter-archive/` — archived Flutter implementation; not part of the active build.
+- `packages/contracts/` — shared API contract documentation; typed packages are a later task.
+- `docs/` — product specification, operations, deployment and historical implementation notes.
+- Web/PWA roadmap and progress: [`docs/WEB_PWA_TASKS.md`](docs/WEB_PWA_TASKS.md); original task PDF: [`docs/OmniAssist-Web-PWA-Tasks.pdf`](docs/OmniAssist-Web-PWA-Tasks.pdf).
 
-## Run it locally
+## Requirements
 
-Needs Flutter (stable), Python 3.13+ with [uv](https://docs.astral.sh/uv/), and PostgreSQL 13+.
+- Node.js 22 and pnpm 11.
+- Python 3.13+ and [uv](https://docs.astral.sh/uv/) for the API.
+- PostgreSQL 13+ for API integration tests and local migrations.
 
-Database (once, as a PostgreSQL superuser): `psql -U postgres -f infra/create_dev_db.sql`
+## Run the web app
 
-API:
+From the repository root:
+
+```sh
+pnpm install
+pnpm --filter @omniassist/web dev
 ```
+
+## Run the API
+
+Create a development database once (as a PostgreSQL superuser):
+
+```sh
+psql -U postgres -f infra/create_dev_db.sql
+```
+
+Then start the API:
+
+```sh
 cd apps/api
-cp ../../infra/env/.env.example .env    # adjust the database URL/port if needed
+cp ../../infra/env/.env.example .env
 uv sync
 uv run alembic upgrade head
-uv run uvicorn src.main:app --port 8000
+uv run uvicorn src.main:app --reload --port 8000
 ```
-
-Web app:
-```
-cd apps/client
-flutter pub get
-dart run build_runner build --delete-conflicting-outputs   # Drift code; rerun after table changes
-flutter build web --release --no-web-resources-cdn
-python -m http.server 8080 --directory build/web
-```
-Open http://localhost:8080, choose **Create an account**, and you are in.
 
 ## Checks
+
+From the repository root:
+
+```sh
+pnpm lint
+pnpm typecheck
+pnpm build
+make check
 ```
-cd apps/api && uv run ruff check src tests && uv run mypy && uv run pytest
-cd apps/client && flutter analyze && flutter test
-```
-API integration tests need `OMNI_TEST_DATABASE_URL` (a Postgres user that can create
-databases, e.g. `postgresql://omni:omni@localhost:5432/postgres`); without it they skip.
-CI (`.github/workflows/ci.yml`) runs all of this on every push.
 
-## How it fits together
+`make check` runs web lint, typecheck and production build, followed by API lint, formatting,
+type checking and tests. API integration tests use `OMNI_TEST_DATABASE_URL`; they skip when it
+is unset. See `.github/workflows/ci.yml` for CI database configuration.
 
-- Every change is written to the device's database first, with an outbox entry, in one
-  transaction. A sync engine pushes the outbox and pulls the server's change feed.
-- `mutation_id` makes every upload idempotent; edits to different fields merge, the same field
-  edited on two devices becomes a conflict the user resolves in the Sync Center.
-- The web app stores its database in the browser (`web/sqlite3.wasm`, `web/drift_worker.js`
-  for sqlite3 3.7.1 and drift 2.35.2; update both with those packages) and caches itself with
-  `web/sw.js`, so it opens offline.
-- Sign-in is built in (email and password, decision 0002); a hosted OpenID Connect provider
-  can replace it by configuration (decision 0001).
-- Reminders reach phones and desktops through Web Push once VAPID keys are set
-  (decision 0006); the in-app notification center works without them.
+## Product and operational docs
 
-## Install on a phone
-Serve the web build over **HTTPS** (see `docs/deployment.md`), then
-- Android (Chrome): menu → *Install app*.
-- iOS (Safari): Share → *Add to Home Screen*.
+- Product specification: `docs/SPECIFICATION.md`
+- Historical Flutter implementation status: `docs/PHASES.md`
+- Deployment and operations: `docs/deployment.md`, `docs/operations.md`
+- Architecture decisions: `docs/decisions/`

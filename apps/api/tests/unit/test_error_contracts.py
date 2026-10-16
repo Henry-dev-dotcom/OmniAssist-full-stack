@@ -10,7 +10,7 @@ from src.domain.common.errors import HTTP_STATUS, DomainError, ErrorCode
 
 ROOT = Path(__file__).resolve().parents[4]
 DOC = (ROOT / "packages/contracts/error_codes.md").read_text()
-DART = (ROOT / "apps/client/lib/core/errors/error_codes.dart").read_text()
+ARCHIVED_DART = (ROOT / "apps/client-flutter-archive/lib/core/errors/error_codes.dart").read_text()
 
 
 def _documented() -> set[str]:
@@ -22,7 +22,7 @@ def test_every_code_is_documented_and_vice_versa() -> None:
 
 
 def test_client_uses_same_names() -> None:
-    dart = set(re.findall(r"\('([A-Z_]+)'\)", DART))
+    dart = set(re.findall(r"\('([A-Z_]+)'\)", ARCHIVED_DART))
     assert dart == {c.value for c in ErrorCode}
 
 

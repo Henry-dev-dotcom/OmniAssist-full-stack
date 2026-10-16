@@ -23,5 +23,6 @@ Version conflicts add `entity_type`, `entity_id`, `server_version`, `client_vers
 | `DEPENDENCY_UNAVAILABLE` | 503 | yes | Storage or provider unavailable. |
 | `INTERNAL_ERROR` | 500 | yes | Unhandled failure. Quote `request_id` when reporting. |
 
-Adding a code: update this table, `apps/api/src/domain/common/errors.py` and
-`apps/client/lib/core/errors/error_codes.dart`. `test_error_contracts.py` fails if they differ.
+Adding a code: update this table and `apps/api/src/domain/common/errors.py`. The API test still
+checks the archived Flutter contract at `apps/client-flutter-archive/lib/core/errors/error_codes.dart`
+until the TypeScript contracts are introduced.

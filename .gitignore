@@ -1,3 +1,14 @@
+# Node / pnpm / Next.js
+node_modules/
+.pnpm-store/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+.vercel/
+
+# Python / uv
 .venv/
 __pycache__/
 .mypy_cache/
@@ -11,7 +22,7 @@ build/
 .idea/
 *.g.dart
 .flutter-plugins-dependencies
-apps/client/android/local.properties
-apps/client/ios/Flutter/Generated.xcconfig
-apps/client/ios/Flutter/flutter_export_environment.sh
+apps/client-flutter-archive/android/local.properties
+apps/client-flutter-archive/ios/Flutter/Generated.xcconfig
+apps/client-flutter-archive/ios/Flutter/flutter_export_environment.sh
 .env.prod

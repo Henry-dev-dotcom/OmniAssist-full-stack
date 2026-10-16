@@ -104,8 +104,11 @@ async def list_analyses(
 
 @router.get("/funding-opportunities")
 async def list_funding_opportunities(
-    request: Request, actor: CurrentActor, session: Session,
-    workspace_id: WorkspaceId, project_id: ProjectId = None,
+    request: Request,
+    actor: CurrentActor,
+    session: Session,
+    workspace_id: WorkspaceId,
+    project_id: ProjectId = None,
 ) -> dict[str, Any]:
     return await _list(request, actor, session, funding.repo, workspace_id, project_id=project_id)
 

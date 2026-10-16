@@ -123,7 +123,11 @@ async def update(s: AsyncSession, project_id: uuid.UUID, changes: dict[str, Any]
 
 
 LINKED = (
-    "tasks", "milestones", "reviews", "analysis_records", "experiment_entries",
+    "tasks",
+    "milestones",
+    "reviews",
+    "analysis_records",
+    "experiment_entries",
     "funding_opportunities",
 )
 
