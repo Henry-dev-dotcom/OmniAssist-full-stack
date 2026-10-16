@@ -116,3 +116,17 @@ export async function requestApi<TData>(
 
   return { data: payload.data as TData, meta };
 }
+
+export function apiUrl(path: string): string {
+  const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api/v1";
+  return `${base.replace(/\/$/, "")}${path}`;
+}
+
+export function apiRequest<TData>(path: string, init: ApiRequestInit = {}) {
+  const headers = new Headers(init.headers);
+  if (typeof window !== "undefined") {
+    const token = window.localStorage.getItem("omniassist_access_token");
+    if (token) headers.set("authorization", `Bearer ${token}`);
+  }
+  return requestApi<TData>(apiUrl(path), { ...init, headers });
+}

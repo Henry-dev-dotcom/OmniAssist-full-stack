@@ -1,8 +1,12 @@
 {
   "routes": [
-    {
-      "path": "/",
-      "title": "OmniAssist — Research planner"
-    }
+    { "path": "/", "title": "OmniAssist" },
+    { "path": "/signin", "title": "Sign in" },
+    { "path": "/signup", "title": "Create account" },
+    { "path": "/onboarding", "title": "Workspace setup" },
+    { "path": "/app/today", "title": "Today" },
+    { "path": "/app/projects", "title": "Projects" },
+    { "path": "/app/calendar", "title": "Calendar" },
+    { "path": "/app/milestones", "title": "Milestones" }
   ]
 }

@@ -72,8 +72,8 @@ export default function Home() {
               A calmer place to connect the next small action with the questions that matter
               most to your work.
             </p>
-            <a className="primary-link" href="#capabilities">
-              Explore the workspace
+            <a className="primary-link" href="/signin">
+              Enter the workspace
               <span className="arrow-mark" aria-hidden="true">↗</span>
             </a>
           </div>

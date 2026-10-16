@@ -8,8 +8,7 @@
 - [x] **Task 4 — Contracts, shared types, and CI.** Added `@omniassist/contracts` envelopes, error codes and domain types; a typed API client that preserves request IDs; separate web/API workflows; and parity/runtime tests.
 
 ## In progress
-
-- [ ] Tasks 11–16 — Authenticated frontend.
+- [ ] Tasks 17–20 — Research frontend.
 
 ## Completed in Phase 2
 
@@ -19,8 +18,12 @@
 - [x] **Task 8 — Calendar, reminders, and milestones API.** Time blocks validate dates, return overlap warnings without blocking saves, support task/project links, and expose reminder/notification state with quiet-hours rules; milestone dependency and progress rules are enforced through the workspace-scoped domain repositories and sync API.
 - [x] **Task 9 — Research modules API.** Review stages/items and history, bounded research records, analysis transitions, experiment finalization/revisions, and safe content handling are implemented through the workspace-scoped domain repositories and sync API.
 - [x] **Task 10 — Search and export API.** Authorized workspace search, JSON/CSV background exports with expiring signed downloads, rate limiting, and explicit account deletion are implemented.
-- [ ] Tasks 11–16 — Authenticated frontend.
-- [ ] Tasks 17–20 — Research frontend.
+- [x] **Task 11 — Authenticated frontend entry.** Added sign-in/sign-up forms wired to the configured API auth provider, browser session persistence, bearer-token API requests, protected app/onboarding routes, redirect behavior, and sign-out.
+- [x] **Task 12 — Web application shell.** Added a responsive authenticated shell with desktop sidebar, mobile bottom navigation, workspace identity, active-route states, keyboard-visible focus, reduced-motion support, and accessible labels.
+- [x] **Task 13 — Onboarding and workspace UI.** Added first-run workspace creation and empty/loading/error states with API-backed workspace setup.
+- [x] **Task 14 — Projects and tasks UI.** Added project/task list views, creation flows, progress indicators, priorities/statuses, and Today next-action summaries.
+- [x] **Task 15 — Today and calendar UI.** Added Today dashboard metrics, open-task focus, calendar/time-block view, and overlap-aware planning copy tied to the Phase 2 API.
+- [x] **Task 16 — Milestone UI.** Added milestone progress view with project checkpoint empty states and responsive progress rows.
 - [ ] Tasks 21–23 — Quality and PWA.
 - [ ] Task 24 — Production release.
 

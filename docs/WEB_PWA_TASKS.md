@@ -2,7 +2,7 @@
 
 This roadmap tracks the provided [Web/PWA task list PDF](OmniAssist-Web-PWA-Tasks.pdf). The PDF is the authoritative source for full task descriptions, files, dependencies, effort estimates, and acceptance criteria.
 
-**Progress:** Tasks 1–4 complete; Task 5 is next. Tasks 6–24 are queued.
+**Progress:** Tasks 1–16 complete; Task 17 is next. Tasks 18–24 are queued.
 
 > The PDF summary says “7 phases,” but its body enumerates six numbered phases (1–6) and 24 tasks. No seventh phase is specified, so this tracker preserves the six phases actually listed rather than inventing a phase.
 
@@ -21,23 +21,23 @@ This roadmap tracks the provided [Web/PWA task list PDF](OmniAssist-Web-PWA-Task
 
 | Task | Outcome | Status |
 | --- | --- | --- |
-| 5 | Neon schema and migrations | Next |
-| 6 | Auth claims and workspace authorization | Queued |
-| 7 | Project and task API | Queued |
-| 8 | Calendar, reminders, and milestones API | Queued |
-| 9 | Research modules API | Queued |
-| 10 | Search and export API | Queued |
+| 5 | Neon schema and migrations | **Complete** |
+| 6 | Auth claims and workspace authorization | **Complete** |
+| 7 | Project and task API | **Complete** |
+| 8 | Calendar, reminders, and milestones API | **Complete** |
+| 9 | Research modules API | **Complete** |
+| 10 | Search and export API | **Complete** |
 
 ## Phase 3: Authenticated Frontend
 
 | Task | Outcome | Status |
 | --- | --- | --- |
-| 11 | Clerk integration and protected routes | Queued |
-| 12 | Web application shell | Queued |
-| 13 | Onboarding and workspace UI | Queued |
-| 14 | Projects and tasks UI | Queued |
-| 15 | Today and calendar UI | Queued |
-| 16 | Milestone UI | Queued |
+| 11 | Authenticated provider integration and protected routes | **Complete** |
+| 12 | Web application shell | **Complete** |
+| 13 | Onboarding and workspace UI | **Complete** |
+| 14 | Projects and tasks UI | **Complete** |
+| 15 | Today and calendar UI | **Complete** |
+| 16 | Milestone UI | **Complete** |
 
 ## Phase 4: Research Frontend
 
