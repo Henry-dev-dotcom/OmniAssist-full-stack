@@ -16,6 +16,7 @@ class OmniAssistApp extends ConsumerWidget {
     return MaterialApp.router(
       title: 'OmniAssist',
       theme: buildTheme(),
+      darkTheme: buildDarkTheme(),
       routerConfig: ref.watch(routerProvider),
     );
   }
