@@ -8,6 +8,7 @@ from src.api.dependencies import request_id_middleware
 from src.api.error_handlers import register_error_handlers
 from src.api.routes import (
     exports,
+    funding,
     notifications,
     projects,
     push,
@@ -42,6 +43,8 @@ for router in (
     users.router,
     workspaces.router,
     projects.router,
+    funding.router,
+    research.router,
     research.router,
     tasks.router,
     notifications.router,

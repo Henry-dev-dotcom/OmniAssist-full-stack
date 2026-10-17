@@ -1,6 +1,7 @@
 """Auth, profile, workspace and project routes against real PostgreSQL."""
 
 import logging
+import uuid
 from collections.abc import AsyncIterator
 from pathlib import Path
 from typing import Any
@@ -154,6 +155,44 @@ async def test_project_validation(client: httpx.AsyncClient) -> None:
         r = await client.post("/projects", json=bad, headers=h)
         assert r.status_code == 400, bad
         assert r.json()["error"]["code"] == "VALIDATION_ERROR"
+
+
+async def test_funding_list_is_workspace_scoped(client: httpx.AsyncClient) -> None:
+    ws = await make_ws(client, "ada")
+    h = auth("ada")
+    opportunity_id = str(uuid.uuid4())
+    push = await client.post(
+        "/sync/push",
+        json={
+            "device_id": str(uuid.uuid4()),
+            "protocol_version": 1,
+            "mutations": [
+                {
+                    "mutation_id": str(uuid.uuid4()),
+                    "workspace_id": ws,
+                    "entity_type": "funding_opportunity",
+                    "entity_id": opportunity_id,
+                    "operation": "create",
+                    "changes": {
+                        "title": "Research grant",
+                        "organisation": "Research council",
+                        "category": "Project funding",
+                    },
+                }
+            ],
+        },
+        headers=h,
+    )
+    assert push.json()["data"]["results"][0]["status"] == "accepted"
+
+    listed = await client.get("/funding-opportunities", params={"workspace_id": ws}, headers=h)
+    assert listed.status_code == 200
+    assert [row["id"] for row in listed.json()["data"]] == [opportunity_id]
+
+    outsider = await client.get(
+        "/funding-opportunities", params={"workspace_id": ws}, headers=auth("bob")
+    )
+    assert outsider.status_code == 403
 
 
 async def test_cross_user_access_blocked(client: httpx.AsyncClient) -> None:

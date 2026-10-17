@@ -31,6 +31,16 @@ test("authenticated research workspace remains accessible and fits 320px", async
   expect(results.violations).toEqual([]);
 });
 
+test("grant tracking is reachable from the workspace navigation on mobile", async ({ page, context }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await context.addCookies([{ name: "omniassist_session", value: "1", url: "http://127.0.0.1:4173" }]);
+  await page.goto("/app/grants");
+  await expect(page.getByRole("heading", { level: 1, name: "Grant tracking" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Mobile workspace navigation" }).getByRole("link", { name: "Grants" })).toHaveAttribute("href", "/app/grants");
+  const horizontalOverflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
+  expect(horizontalOverflow).toBe(false);
+});
+
 test("experiment entry draft survives a reload and remains a draft", async ({ page, context }) => {
   await context.addCookies([{ name: "omniassist_session", value: "1", url: "http://127.0.0.1:4173" }]);
   await page.goto("/app/research");
