@@ -45,8 +45,10 @@ provider details.
 
 ## 3. Configure and deploy the web app
 
-1. In Vercel, import `Henry-dev-dotcom/OmniAssist-full-stack` into the approved workspace and use
-   the repository root. [`vercel.json`](../vercel.json) configures the Next.js build.
+1. In Vercel, import `Henry-dev-dotcom/OmniAssist-full-stack` into the approved workspace and set the
+   project's **Root Directory** to `apps/web` (Settings → Build and Deployment). With the repository
+   root Vercel fails with "No Next.js version detected", because `next` is only a dependency of
+   `apps/web`. Keep "Include files outside the root directory" enabled so the pnpm workspace installs.
 2. Set the **Production** environment variable `NEXT_PUBLIC_API_URL` to the Render API base URL,
    including `/api/v1` (for example, `https://<service>.onrender.com/api/v1`). This is the actual
    variable read by the web client; do not use the old Flutter-era `API_BASE_URL` name.
