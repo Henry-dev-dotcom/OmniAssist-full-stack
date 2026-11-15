@@ -1,11 +1,11 @@
 import { previewCsv } from "@/lib/research/csv";
 import {
   CHECKLIST, STATUSES, STEPS, blankDraft, type ChecklistStep, type Scholarship, type ScholarshipDraft,
-  type ScholarshipStatus,
+  type ScholarshipStatus, type Section,
 } from "./types";
 
 const FIELDS = [
-  "region", "university", "program", "scheme", "portal_link", "opens_label", "deadline", "status",
+  "section", "university", "program", "scheme", "portal_link", "opens_label", "deadline", "status",
   "documents_required", "cv_status", "transcripts_status", "letter_status", "references_status",
   "portal_status", "funding", "notes",
 ] as const;
@@ -17,36 +17,46 @@ function cell(value: unknown): string {
   return /[",\n\r]/.test(text) ? `"${text.replaceAll('"', '""')}"` : text;
 }
 
-export function scholarshipsToCsv(items: Scholarship[]): string {
+export function scholarshipsToCsv(items: Scholarship[], sections: Section[]): string {
+  const names = new Map(sections.map((section) => [section.id, section.name]));
   const lines: string[] = [FIELDS.join(",")];
   for (const item of items) {
-    const row: Record<string, unknown> = { ...item, deadline: item.deadline_at ? item.deadline_at.slice(0, 10) : null };
+    const row: Record<string, unknown> = {
+      ...item,
+      section: names.get(item.section_id) ?? "",
+      deadline: item.deadline_at ? item.deadline_at.slice(0, 10) : null,
+    };
     lines.push(FIELDS.map((field) => cell(row[field])).join(","));
   }
   return `﻿${lines.join("\r\n")}`;
 }
 
-export type CsvImport = { drafts: ScholarshipDraft[]; errors: string[] };
+export type CsvRow = { section: string; draft: ScholarshipDraft };
+export type CsvImport = { rows: CsvRow[]; errors: string[] };
 
 /** Reads a CSV made by scholarshipsToCsv. Rows with a problem are reported and left out. */
 export function scholarshipsFromCsv(source: string): CsvImport {
   const preview = previewCsv(source.replace(/^﻿/, ""));
-  if (preview.errors.length) return { drafts: [], errors: preview.errors };
+  if (preview.errors.length) return { rows: [], errors: preview.errors };
   const index = new Map(preview.headers.map((header, i) => [header.toLowerCase(), i]));
-  if (!index.has("university") || !index.has("region")) {
-    return { drafts: [], errors: ["The CSV needs region and university columns. Use a file exported from this page."] };
+  // Files exported before sections existed call the column "region".
+  const sectionColumn = index.has("section") ? "section" : "region";
+  if (!index.has("university") || !index.has(sectionColumn)) {
+    return { rows: [], errors: ["The CSV needs section and university columns. Use a file exported from this page."] };
   }
-  const drafts: ScholarshipDraft[] = [];
+  const rows: CsvRow[] = [];
   const errors: string[] = [];
   preview.rows.forEach((values, n) => {
     const get = (field: string) => (values[index.get(field) ?? -1] ?? "").replace(/^'(?=[=+\-@])/, "").trim();
     const row = `Row ${n + 2}`;
-    const draft = blankDraft(get("region"));
+    const section = get(sectionColumn);
+    const draft = blankDraft();
     for (const field of ["program", "scheme", "portal_link", "opens_label", "documents_required", "funding", "notes"] as const) {
       draft[field] = get(field) || null;
     }
     draft.university = get("university");
-    if (!draft.region || !draft.university) { errors.push(`${row}: region and university are required.`); return; }
+    if (!section || !draft.university) { errors.push(`${row}: section and university are required.`); return; }
+    if (section.length > 80) { errors.push(`${row}: section name is longer than 80 characters.`); return; }
     if (draft.portal_link && !/^https?:\/\//i.test(draft.portal_link)) { errors.push(`${row}: portal_link must start with http:// or https://.`); return; }
     const deadline = get("deadline");
     if (deadline && !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) { errors.push(`${row}: deadline must be YYYY-MM-DD.`); return; }
@@ -59,7 +69,7 @@ export function scholarshipsFromCsv(source: string): CsvImport {
       if (!STEPS.includes(step)) { errors.push(`${row}: unknown ${key} "${step}".`); return; }
       draft[key] = step;
     }
-    drafts.push(draft);
+    rows.push({ section, draft });
   });
-  return { drafts, errors };
+  return { rows, errors };
 }

@@ -68,6 +68,8 @@ _DATA = (
     "DELETE FROM analysis_records WHERE workspace_id = ANY(:ws)",
     "DELETE FROM funding_opportunities WHERE workspace_id = ANY(:ws)",
     "DELETE FROM scholarship_applications WHERE workspace_id = ANY(:ws)",
+    "DELETE FROM scholarship_schemes WHERE workspace_id = ANY(:ws)",
+    "DELETE FROM scholarship_sections WHERE workspace_id = ANY(:ws)",
     "DELETE FROM experiment_entries WHERE workspace_id = ANY(:ws)",
     "UPDATE milestones SET parent_id = NULL WHERE workspace_id = ANY(:ws)",
     "DELETE FROM milestones WHERE workspace_id = ANY(:ws)",

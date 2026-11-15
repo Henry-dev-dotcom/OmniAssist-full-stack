@@ -27,8 +27,90 @@ class ChecklistStep(StrEnum):
     submitted = "submitted"
 
 
+class _Stored(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: uuid.UUID
+    workspace_id: uuid.UUID
+    version: int
+    updated_at: datetime
+
+
+class _Update(BaseModel):
+    def changes(self) -> dict[str, Any]:
+        return plain(self.model_dump(exclude_unset=True))
+
+
+# --- sections ---------------------------------------------------------------------------
+
+
+class _SectionFields(BaseModel):
+    name: str = Field(min_length=1, max_length=80)
+    description: str | None = Field(default=None, max_length=2000)
+    position: int = Field(default=0, ge=0, le=100000)
+
+    def values(self) -> dict[str, Any]:
+        return plain(self.model_dump())
+
+
+class SectionCreate(_SectionFields):
+    id: uuid.UUID | None = None
+    workspace_id: uuid.UUID
+
+
+class SectionUpdate(_Update):
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    description: str | None = Field(default=None, max_length=2000)
+    position: int | None = Field(default=None, ge=0, le=100000)
+
+
+class SectionOut(_SectionFields, _Stored):
+    pass
+
+
+# --- schemes ----------------------------------------------------------------------------
+
+
+class _SchemeFields(BaseModel):
+    section_id: uuid.UUID
+    name: str = Field(min_length=1, max_length=240)
+    organizing_body: str | None = Field(default=None, max_length=500)
+    coverage: str | None = Field(default=None, max_length=2000)
+    strategy: str | None = Field(default=None, max_length=5000)
+    position: int = Field(default=0, ge=0, le=100000)
+
+    def values(self) -> dict[str, Any]:
+        return plain(self.model_dump())
+
+
+class SchemeCreate(_SchemeFields):
+    id: uuid.UUID | None = None
+    workspace_id: uuid.UUID
+
+
+class SchemeUpdate(_Update):
+    section_id: uuid.UUID | None = None
+    name: str | None = Field(default=None, min_length=1, max_length=240)
+    organizing_body: str | None = Field(default=None, max_length=500)
+    coverage: str | None = Field(default=None, max_length=2000)
+    strategy: str | None = Field(default=None, max_length=5000)
+    position: int | None = Field(default=None, ge=0, le=100000)
+
+
+class SchemeOut(_SchemeFields, _Stored):
+    pass
+
+
+# --- applications -----------------------------------------------------------------------
+
+
+def _link(out: dict[str, Any]) -> dict[str, Any]:
+    if out.get("portal_link") is not None:
+        out["portal_link"] = str(out["portal_link"])
+    return out
+
+
 class _Fields(BaseModel):
-    region: str = Field(min_length=1, max_length=80)
+    section_id: uuid.UUID
     university: str = Field(min_length=1, max_length=240)
     program: str | None = Field(default=None, max_length=500)
     scheme: str | None = Field(default=None, max_length=500)
@@ -46,10 +128,7 @@ class _Fields(BaseModel):
     notes: str | None = Field(default=None, max_length=20000)
 
     def values(self) -> dict[str, Any]:
-        out = plain(self.model_dump())
-        if out.get("portal_link") is not None:
-            out["portal_link"] = str(out["portal_link"])
-        return out
+        return _link(plain(self.model_dump()))
 
 
 class ScholarshipCreate(_Fields):
@@ -59,7 +138,7 @@ class ScholarshipCreate(_Fields):
 
 # Every field optional on update, with the same validation.
 class ScholarshipUpdate(BaseModel):
-    region: str | None = Field(default=None, min_length=1, max_length=80)
+    section_id: uuid.UUID | None = None
     university: str | None = Field(default=None, min_length=1, max_length=240)
     program: str | None = Field(default=None, max_length=500)
     scheme: str | None = Field(default=None, max_length=500)
@@ -77,15 +156,8 @@ class ScholarshipUpdate(BaseModel):
     notes: str | None = Field(default=None, max_length=20000)
 
     def changes(self) -> dict[str, Any]:
-        out = plain(self.model_dump(exclude_unset=True))
-        if out.get("portal_link") is not None:
-            out["portal_link"] = str(out["portal_link"])
-        return out
+        return _link(plain(self.model_dump(exclude_unset=True)))
 
 
-class ScholarshipOut(_Fields):
-    model_config = ConfigDict(from_attributes=True)
-    id: uuid.UUID
-    workspace_id: uuid.UUID
-    version: int
-    updated_at: datetime
+class ScholarshipOut(_Fields, _Stored):
+    pass

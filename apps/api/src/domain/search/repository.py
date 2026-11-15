@@ -32,7 +32,7 @@ SOURCES: dict[str, tuple[str, str, str, str | None, tuple[str, ...]]] = {
     ),
     "scholarship_application": (
         "scholarship_applications", "university", "(SELECT NULL::uuid)", "status",
-        ("university", "program", "scheme", "region", "funding", "notes"),
+        ("university", "program", "scheme", "funding", "notes"),
     ),
 }  # fmt: skip
 
