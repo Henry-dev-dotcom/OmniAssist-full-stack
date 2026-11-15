@@ -6,11 +6,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   applicationName: "OmniAssist",
   title: {
-    default: "OmniAssist — Research planner",
+    default: "OmniAssist — Planning workspace",
     template: "%s — OmniAssist",
   },
   description:
-    "A calm, considered workspace for postgraduate research planning and progress.",
+    "A calm, considered workspace for planning projects, deadlines, applications and the goals behind them.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [

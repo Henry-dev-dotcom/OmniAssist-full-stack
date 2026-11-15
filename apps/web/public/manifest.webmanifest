@@ -1,8 +1,8 @@
 {
   "id": "/",
-  "name": "OmniAssist — Research planner",
+  "name": "OmniAssist — Planning workspace",
   "short_name": "OmniAssist",
-  "description": "A calm, considered workspace for postgraduate research planning.",
+  "description": "A calm, considered workspace for planning projects, deadlines and applications.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
