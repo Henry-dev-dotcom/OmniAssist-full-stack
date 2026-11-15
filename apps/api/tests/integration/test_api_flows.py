@@ -195,6 +195,58 @@ async def test_funding_list_is_workspace_scoped(client: httpx.AsyncClient) -> No
     assert outsider.status_code == 403
 
 
+async def test_scholarship_applications_sync_and_scope(client: httpx.AsyncClient) -> None:
+    ws = await make_ws(client, "ada")
+    h = auth("ada")
+    application_id = str(uuid.uuid4())
+
+    async def push(operation: str, changes: dict, base_version: int | None = None) -> dict:
+        r = await client.post(
+            "/sync/push",
+            json={
+                "device_id": str(uuid.uuid4()),
+                "protocol_version": 1,
+                "mutations": [
+                    {
+                        "mutation_id": str(uuid.uuid4()),
+                        "workspace_id": ws,
+                        "entity_type": "scholarship_application",
+                        "entity_id": application_id,
+                        "operation": operation,
+                        "base_version": base_version,
+                        "changes": changes,
+                    }
+                ],
+            },
+            headers=h,
+        )
+        return r.json()["data"]["results"][0]
+
+    created = await push(
+        "create",
+        {"region": "Russia", "university": "Example University", "cv_status": "ready"},
+    )
+    assert created["status"] == "accepted"
+
+    bad = await push("update", {"status": "nope"}, created["entity_version"])
+    assert bad["status"] == "rejected"
+
+    updated = await push("update", {"status": "submitted"}, created["entity_version"])
+    assert updated["status"] == "accepted"
+
+    listed = await client.get("/scholarship-applications", params={"workspace_id": ws}, headers=h)
+    assert listed.status_code == 200
+    rows = listed.json()["data"]
+    assert [row["id"] for row in rows] == [application_id]
+    assert rows[0]["status"] == "submitted"
+    assert rows[0]["cv_status"] == "ready"
+
+    outsider = await client.get(
+        "/scholarship-applications", params={"workspace_id": ws}, headers=auth("bob")
+    )
+    assert outsider.status_code == 403
+
+
 async def test_cross_user_access_blocked(client: httpx.AsyncClient) -> None:
     ws = await make_ws(client, "ada")
     p = (await client.post("/projects", json=body(ws), headers=auth("ada"))).json()["data"]

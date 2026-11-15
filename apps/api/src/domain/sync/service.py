@@ -31,6 +31,8 @@ from src.domain.reviews.schemas import (
     ReviewOut,
     ReviewUpdate,
 )
+from src.domain.scholarships import repository as scholarships
+from src.domain.scholarships.schemas import ScholarshipCreate, ScholarshipOut, ScholarshipUpdate
 from src.domain.sync import repository as sync
 from src.domain.tasks import repository as tasks
 from src.domain.tasks.schemas import TaskCreate, TaskOut, TaskUpdate
@@ -83,6 +85,9 @@ ENTITIES = {
     "analysis_record": Entity(analyses.repo, AnalysisCreate, AnalysisUpdate, AnalysisOut),
     "experiment_entry": Entity(experiments.repo, ExperimentCreate, ExperimentUpdate, ExperimentOut),
     "funding_opportunity": Entity(funding.repo, FundingCreate, FundingUpdate, FundingOut),
+    "scholarship_application": Entity(
+        scholarships.repo, ScholarshipCreate, ScholarshipUpdate, ScholarshipOut
+    ),
 }
 
 
