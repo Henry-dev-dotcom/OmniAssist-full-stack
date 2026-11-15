@@ -195,6 +195,101 @@ async def test_funding_list_is_workspace_scoped(client: httpx.AsyncClient) -> No
     assert outsider.status_code == 403
 
 
+async def test_scholarship_sections_schemes_and_applications(client: httpx.AsyncClient) -> None:
+    ws = await make_ws(client, "ada")
+    h = auth("ada")
+    section_id, scheme_id, application_id = (str(uuid.uuid4()) for _ in range(3))
+
+    async def push(
+        entity_type: str,
+        entity_id: str,
+        operation: str,
+        changes: dict[str, object] | None = None,
+        base_version: int | None = None,
+    ) -> dict[str, object]:
+        r = await client.post(
+            "/sync/push",
+            json={
+                "device_id": str(uuid.uuid4()),
+                "protocol_version": 1,
+                "mutations": [
+                    {
+                        "mutation_id": str(uuid.uuid4()),
+                        "workspace_id": ws,
+                        "entity_type": entity_type,
+                        "entity_id": entity_id,
+                        "operation": operation,
+                        "base_version": base_version,
+                        "changes": changes or {},
+                    }
+                ],
+            },
+            headers=h,
+        )
+        return r.json()["data"]["results"][0]  # type: ignore[no-any-return]
+
+    # An application needs a section that exists in the same workspace.
+    orphan = await push(
+        "scholarship_application",
+        application_id,
+        "create",
+        {"section_id": section_id, "university": "Example University"},
+    )
+    assert orphan["status"] == "rejected"
+
+    section = await push("scholarship_section", section_id, "create", {"name": "Russia"})
+    assert section["status"] == "accepted"
+    duplicate = await push("scholarship_section", str(uuid.uuid4()), "create", {"name": "russia"})
+    assert duplicate["status"] == "rejected"
+
+    scheme = await push(
+        "scholarship_scheme",
+        scheme_id,
+        "create",
+        {"section_id": section_id, "name": "Government quota", "coverage": "Tuition"},
+    )
+    assert scheme["status"] == "accepted"
+
+    application_id = str(uuid.uuid4())
+    created = await push(
+        "scholarship_application",
+        application_id,
+        "create",
+        {"section_id": section_id, "university": "Example University", "cv_status": "ready"},
+    )
+    assert created["status"] == "accepted"
+    version = created["entity_version"]
+    assert isinstance(version, int)
+
+    bad = await push("scholarship_application", application_id, "update", {"status": "x"}, version)
+    assert bad["status"] == "rejected"
+    updated = await push(
+        "scholarship_application", application_id, "update", {"status": "submitted"}, version
+    )
+    assert updated["status"] == "accepted"
+
+    for path, expected in (
+        ("/scholarship-sections", section_id),
+        ("/scholarship-schemes", scheme_id),
+        ("/scholarship-applications", application_id),
+    ):
+        listed = await client.get(path, params={"workspace_id": ws}, headers=h)
+        assert listed.status_code == 200, path
+        assert [row["id"] for row in listed.json()["data"]] == [expected], path
+        outsider = await client.get(path, params={"workspace_id": ws}, headers=auth("bob"))
+        assert outsider.status_code == 403, path
+
+    # A section with contents stays; once emptied it can go, and its name is free again.
+    blocked = await push("scholarship_section", section_id, "delete")
+    assert blocked["status"] == "rejected"
+    assert blocked["error_code"] == "DOMAIN_RULE_VIOLATION"
+    assert (await push("scholarship_application", application_id, "delete"))["status"] == "accepted"
+    assert (await push("scholarship_scheme", scheme_id, "delete"))["status"] == "accepted"
+    assert (await push("scholarship_section", section_id, "delete"))["status"] == "accepted"
+    again = await push("scholarship_section", str(uuid.uuid4()), "create", {"name": "Russia"})
+    assert again["status"] == "accepted"
+
+
 async def test_cross_user_access_blocked(client: httpx.AsyncClient) -> None:
     ws = await make_ws(client, "ada")
     p = (await client.post("/projects", json=body(ws), headers=auth("ada"))).json()["data"]
