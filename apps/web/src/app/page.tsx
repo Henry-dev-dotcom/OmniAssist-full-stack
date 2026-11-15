@@ -8,8 +8,8 @@ const workspaceIdeas = [
   },
   {
     number: "02",
-    title: "Keep research together",
-    description: "Bring reviews, analysis, and experiment notes into one considered workspace.",
+    title: "Keep it all together",
+    description: "Bring projects, grants, scholarship applications and research notes into one considered workspace.",
   },
   {
     number: "03",
@@ -32,7 +32,7 @@ export default function Home() {
           </span>
           <span className="brand-name">OmniAssist</span>
         </a>
-        <p className="sidebar-tagline">Research, with room to think.</p>
+        <p className="sidebar-tagline">Plans, with room to think.</p>
 
         <nav className="workspace-nav" aria-label="Workspace navigation">
           <span className="nav-label">YOUR WORKSPACE</span>
@@ -57,7 +57,7 @@ export default function Home() {
 
       <main className="main-column" id="main-content">
         <header className="topbar">
-          <p className="topbar-label">A research planner</p>
+          <p className="topbar-label">A planning workspace</p>
           <span className="topbar-status">
             <span className="status-dot" aria-hidden="true" />
             Focused work, thoughtfully organized
@@ -66,8 +66,8 @@ export default function Home() {
 
         <section className="hero" id="overview" aria-labelledby="hero-title">
           <div className="hero-copy">
-            <p className="eyebrow">PLANNING &amp; RESEARCH</p>
-            <h1 id="hero-title">Plan today.<br />Advance your research.</h1>
+            <p className="eyebrow">PLANNING &amp; PROGRESS</p>
+            <h1 id="hero-title">Plan today.<br />Move what matters forward.</h1>
             <p className="hero-description">
               A calmer place to connect the next small action with the questions that matter
               most to your work.
@@ -85,7 +85,7 @@ export default function Home() {
             <p className="hero-note-label">THE OMNIASSIST APPROACH</p>
             <p className="hero-note-quote">Keep the next step visible. Give important questions room to grow.</p>
             <span className="hero-note-rule" aria-hidden="true" />
-            <p className="hero-note-caption">Made for the long arc of research.</p>
+            <p className="hero-note-caption">Made for the long arc of your goals.</p>
           </aside>
         </section>
 
@@ -94,7 +94,7 @@ export default function Home() {
             <p className="eyebrow">A THOUGHTFUL FOUNDATION</p>
             <h2 id="capabilities-title">Structure that supports the work.</h2>
             <p className="section-description">
-              The workspace connects everyday planning with the long arc of postgraduate research.
+              The workspace connects everyday planning with the longer goals behind it.
             </p>
           </div>
 
@@ -111,13 +111,13 @@ export default function Home() {
             ))}
           </div>
           <p className="foundation-note">
-            The installable workspace brings projects, milestones, reviews, analysis records and experiment notes into one place.
+            The installable workspace brings projects, milestones, grants, scholarship applications and research records into one place.
           </p>
         </section>
 
         <footer className="page-footer">
           <span>OmniAssist</span>
-          <span>Made for focused research work.</span>
+          <span>Made for focused work.</span>
         </footer>
       </main>
     </div>
