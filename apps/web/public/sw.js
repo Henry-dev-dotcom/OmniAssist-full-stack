@@ -1,4 +1,4 @@
-const CACHE_NAME = "omniassist-static-v2";
+const CACHE_NAME = "omniassist-static-v3";
 const OFFLINE_PAGE = "/offline.html";
 const PRECACHE_URLS = [
   OFFLINE_PAGE,

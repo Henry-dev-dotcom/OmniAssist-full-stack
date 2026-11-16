@@ -2,17 +2,14 @@ import { OmniAssistMark } from "@/components/brand/omniassist-mark";
 
 const workspaceIdeas = [
   {
-    number: "01",
     title: "Plan with context",
     description: "Keep the next action connected to the project and milestone behind it.",
   },
   {
-    number: "02",
     title: "Keep it all together",
     description: "Bring projects, grants, scholarship applications and research notes into one considered workspace.",
   },
   {
-    number: "03",
     title: "Notice your progress",
     description: "Make steady movement visible without adding noise to the work.",
   },
@@ -100,8 +97,7 @@ export default function Home() {
 
           <div className="capability-list">
             {workspaceIdeas.map((idea) => (
-              <article className="capability-row" key={idea.number}>
-                <span className="capability-number">{idea.number}</span>
+              <article className="capability-row" key={idea.title}>
                 <div className="capability-copy">
                   <h3>{idea.title}</h3>
                   <p>{idea.description}</p>
