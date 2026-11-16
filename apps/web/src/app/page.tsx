@@ -106,7 +106,6 @@ export default function Home() {
                   <h3>{idea.title}</h3>
                   <p>{idea.description}</p>
                 </div>
-                <span className="status-chip">In progress</span>
               </article>
             ))}
           </div>
