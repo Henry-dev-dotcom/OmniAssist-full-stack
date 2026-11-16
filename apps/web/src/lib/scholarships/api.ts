@@ -1,6 +1,6 @@
 import { apiRequest } from "@/lib/api/client";
 import {
-  schemeChanges, sectionChanges, toChanges,
+  draftFromScholarship, schemeChanges, sectionChanges, toChanges,
   type Scholarship, type Scheme, type Section, type StarterSection,
 } from "./types";
 
@@ -94,5 +94,25 @@ export function removeSectionChanges(section: Section, schemes: Scheme[], applic
     ...schemes.filter((s) => s.section_id === section.id)
       .map((s): Change => ({ entity: "scholarship_scheme", id: s.id, operation: "delete", baseVersion: s.version })),
     { entity: "scholarship_section", id: section.id, operation: "delete", baseVersion: section.version },
+  ];
+}
+
+/** Re-creates a deleted application as a new record (a deleted record's id cannot be reused). */
+export function restoreApplicationChange(item: Scholarship, sectionId = item.section_id): Change {
+  return { entity: "scholarship_application", id: crypto.randomUUID(), operation: "create", changes: toChanges(draftFromScholarship(item), sectionId) };
+}
+
+/** Re-creates a deleted scheme as a new record. */
+export function restoreSchemeChange(scheme: Scheme, sectionId = scheme.section_id): Change {
+  return { entity: "scholarship_scheme", id: crypto.randomUUID(), operation: "create", changes: { ...schemeChanges(scheme, sectionId), position: scheme.position } };
+}
+
+/** Re-creates a removed section with everything that was in it, section first. */
+export function restoreSectionChanges(section: Section, schemes: Scheme[], applications: Scholarship[]): Change[] {
+  const sectionId = crypto.randomUUID();
+  return [
+    { entity: "scholarship_section", id: sectionId, operation: "create", changes: { ...sectionChanges(section), position: section.position } },
+    ...schemes.filter((s) => s.section_id === section.id).map((s) => restoreSchemeChange(s, sectionId)),
+    ...applications.filter((a) => a.section_id === section.id).map((a) => restoreApplicationChange(a, sectionId)),
   ];
 }

@@ -6,7 +6,11 @@ import { apiRequest } from "@/lib/api/client";
 import type { Workspace } from "@/lib/types/domain";
 import { ApplicationForm, SchemeForm, SectionForm } from "@/components/scholarships/forms";
 import { STARTER_SECTIONS } from "@/lib/scholarships/starter";
-import { loadTracker, pushChanges, removeSectionChanges, starterChanges, type Change } from "@/lib/scholarships/api";
+import {
+  loadTracker, pushChanges, removeSectionChanges, restoreApplicationChange, restoreSchemeChange, restoreSectionChanges,
+  starterChanges, type Change,
+} from "@/lib/scholarships/api";
+import { UndoBar } from "@/components/undo-bar";
 import { scholarshipsFromCsv, scholarshipsToCsv } from "@/lib/scholarships/csv";
 import {
   CHECKLIST, CLOSED, STATUSES, blankDraft, checklistProgress, daysUntil, draftFromScholarship, label,
@@ -50,6 +54,8 @@ export default function ScholarshipsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  // The last delete, kept briefly so it can be undone.
+  const [undo, setUndo] = useState<{ message: string; changes: Change[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -107,6 +113,7 @@ export default function ScholarshipsPage() {
   // Sends changes, reports the outcome, reloads. Errors are shown, never thrown.
   async function run(changes: Change[], success: string, after?: () => void) {
     if (!workspace) return;
+    setUndo(null);
     setBusy(true);
     setError("");
     setNotice("");
@@ -125,6 +132,11 @@ export default function ScholarshipsPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  function undoLast() {
+    if (!undo) return;
+    void run(undo.changes, undo.message.replace(/ (deleted|removed)\.$/, " restored."));
   }
 
   // --- sections ---
@@ -155,8 +167,12 @@ export default function ScholarshipsPage() {
     const apps = items.filter((i) => i.section_id === section.id).length;
     const routes = schemes.filter((s) => s.section_id === section.id).length;
     const contents = apps || routes ? ` This also deletes its ${plural(apps, "application")} and ${plural(routes, "scheme")}.` : "";
-    if (!window.confirm(`Remove the “${section.name}” section?${contents} This cannot be undone.`)) return;
-    void run(removeSectionChanges(section, schemes, items), `Section “${section.name}” removed.`, () => setSectionId(""));
+    if (!window.confirm(`Remove the “${section.name}” section?${contents}`)) return;
+    const restore = restoreSectionChanges(section, schemes, items);
+    void run(removeSectionChanges(section, schemes, items), "", () => {
+      setSectionId("");
+      setUndo({ message: `Section “${section.name}” removed.`, changes: restore });
+    });
   }
 
   // --- schemes ---
@@ -174,8 +190,8 @@ export default function ScholarshipsPage() {
   }
 
   function removeScheme(scheme: Scheme) {
-    if (!window.confirm(`Delete the scheme “${scheme.name}”?`)) return;
-    void run([{ entity: "scholarship_scheme", id: scheme.id, operation: "delete", baseVersion: scheme.version }], "Scheme deleted.");
+    void run([{ entity: "scholarship_scheme", id: scheme.id, operation: "delete", baseVersion: scheme.version }], "",
+      () => setUndo({ message: `Scheme “${scheme.name}” deleted.`, changes: [restoreSchemeChange(scheme)] }));
   }
 
   // --- applications ---
@@ -194,8 +210,8 @@ export default function ScholarshipsPage() {
   }
 
   function removeApplication(item: Scholarship) {
-    if (!window.confirm(`Delete “${item.university}” from your scholarship tracker?`)) return;
-    void run([{ entity: "scholarship_application", id: item.id, operation: "delete", baseVersion: item.version }], "Application deleted.");
+    void run([{ entity: "scholarship_application", id: item.id, operation: "delete", baseVersion: item.version }], "",
+      () => setUndo({ message: `“${item.university}” deleted.`, changes: [restoreApplicationChange(item)] }));
   }
 
   // --- CSV ---
@@ -257,6 +273,7 @@ export default function ScholarshipsPage() {
 
       {error && <div className="notice notice-error" role="alert">{error}</div>}
       {notice && <div className="notice" role="status">{notice}</div>}
+      {undo && <UndoBar message={undo.message} busy={busy} onUndo={undoLast} onDismiss={() => setUndo(null)} />}
 
       <div className="scholarship-metrics" aria-label="Application summary">
         <div><b>{metrics.total}</b><span>Target universities</span></div>

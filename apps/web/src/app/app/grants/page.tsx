@@ -3,6 +3,7 @@
 import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/api/client";
+import { UndoBar } from "@/components/undo-bar";
 import type { Project, Workspace } from "@/lib/types/domain";
 
 type FundingStatus =
@@ -81,6 +82,27 @@ function formFromOpportunity(item: Opportunity): GrantForm {
   };
 }
 
+/** The fields the API stores, from the form's values. */
+function changesFromForm(form: GrantForm): Record<string, unknown> {
+  return {
+    project_id: form.project_id || null,
+    category: form.category.trim(),
+    title: form.title.trim(),
+    organisation: form.organisation.trim(),
+    amount: form.amount.trim() || null,
+    opens_label: form.opens_label.trim() || null,
+    deadline_at: form.deadline ? `${form.deadline}T00:00:00Z` : null,
+    deadline_type: form.deadline_type,
+    eligibility_notes: form.eligibility_notes.trim() || null,
+    priority: form.priority,
+    status: form.status,
+    date_applied: form.date_applied ? `${form.date_applied}T00:00:00Z` : null,
+    next_action: form.next_action.trim() || null,
+    official_link: form.official_link.trim() || null,
+    other_source: form.other_source.trim() || null,
+  };
+}
+
 export default function GrantsPage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -94,6 +116,8 @@ export default function GrantsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  // The last deleted opportunity, kept briefly so it can be undone.
+  const [deleted, setDeleted] = useState<Opportunity | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -203,23 +227,7 @@ export default function GrantsPage() {
     setSaving(true);
     setError("");
     setNotice("");
-    const changes = {
-      project_id: form.project_id || null,
-      category: form.category.trim(),
-      title: form.title.trim(),
-      organisation: form.organisation.trim(),
-      amount: form.amount.trim() || null,
-      opens_label: form.opens_label.trim() || null,
-      deadline_at: form.deadline ? `${form.deadline}T00:00:00Z` : null,
-      deadline_type: form.deadline_type,
-      eligibility_notes: form.eligibility_notes.trim() || null,
-      priority: form.priority,
-      status: form.status,
-      date_applied: form.date_applied ? `${form.date_applied}T00:00:00Z` : null,
-      next_action: form.next_action.trim() || null,
-      official_link: form.official_link.trim() || null,
-      other_source: form.other_source.trim() || null,
-    };
+    const changes = changesFromForm(form);
     try {
       await mutate(editing?.id ?? newId(), editing ? "update" : "create", changes, editing?.version);
       closeForm();
@@ -233,16 +241,33 @@ export default function GrantsPage() {
   }
 
   async function remove(item: Opportunity) {
-    if (!window.confirm(`Delete “${item.title}” from grant tracking?`)) return;
     setSaving(true);
     setError("");
     setNotice("");
+    setDeleted(null);
     try {
       await mutate(item.id, "delete", {}, item.version);
       await load();
-      setNotice("Grant opportunity deleted.");
+      setDeleted(item);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not delete the grant opportunity.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  // A deleted record's id cannot be reused, so the restored opportunity is a new record.
+  async function undoDelete() {
+    if (!deleted) return;
+    setSaving(true);
+    setError("");
+    try {
+      await mutate(newId(), "create", changesFromForm(formFromOpportunity(deleted)));
+      await load();
+      setNotice(`“${deleted.title}” restored.`);
+      setDeleted(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not restore the grant opportunity.");
     } finally {
       setSaving(false);
     }
@@ -263,6 +288,7 @@ export default function GrantsPage() {
 
       {error && <div className="notice notice-error" role="alert">{error}</div>}
       {notice && <div className="notice" role="status">{notice}</div>}
+      {deleted && <UndoBar message={`“${deleted.title}” deleted.`} busy={saving} onUndo={() => void undoDelete()} onDismiss={() => setDeleted(null)} />}
 
       {showForm && (
         <section className="panel grant-form-panel" aria-labelledby="grant-form-title">
