@@ -28,6 +28,13 @@ class Settings(BaseSettings):
     vapid_private_key: str = ""
     vapid_public_key: str = ""
     vapid_subject: str = "mailto:admin@example.com"
+    # Run the reminder dispatcher inside the API process. Unset: on in production only, where
+    # the API is the one long-running process; a separate worker can still run it instead.
+    run_reminders: bool | None = None
+
+    @property
+    def reminders_in_process(self) -> bool:
+        return self.env == "production" if self.run_reminders is None else self.run_reminders
 
     @model_validator(mode="after")
     def _require_production_config(self) -> Self:

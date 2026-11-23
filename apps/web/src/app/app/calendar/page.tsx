@@ -5,6 +5,8 @@ import { apiRequest } from "@/lib/api/client";
 import type { TimeBlock, Workspace } from "@/lib/types/domain";
 import { UndoBar } from "@/components/undo-bar";
 import { useFormFocus } from "@/lib/use-form-focus";
+import { ReminderPicker } from "@/components/reminder-picker";
+import { START_CHOICES, useReminders } from "@/lib/reminders";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const CATEGORIES = ["Focus", "Meeting", "Study", "Admin", "Break"];
@@ -14,7 +16,7 @@ const noSubscribe = () => () => {};
 const todayKey = () => new Date().toDateString();
 const serverToday = () => null;
 
-type BlockForm = { title: string; date: string; start: string; end: string; category: string };
+type BlockForm = { title: string; date: string; start: string; end: string; category: string; reminder: string };
 type Overlap = { code: string; block_ids: string[] };
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -45,6 +47,7 @@ export default function CalendarPage() {
   const [deleted, setDeleted] = useState<TimeBlock | null>(null);
   const today = useSyncExternalStore(noSubscribe, todayKey, serverToday);
   const formRef = useFormFocus<HTMLElement>(form ? "new" : null);
+  const reminders = useReminders(workspace?.id);
 
   const monday = useMemo(() => {
     if (!today) return null;
@@ -86,7 +89,7 @@ export default function CalendarPage() {
 
   function openForm() {
     const start = monday && offset !== 0 ? monday : new Date();
-    setForm({ title: "", date: dateInput(start), start: "09:00", end: "10:00", category: "Focus" });
+    setForm({ title: "", date: dateInput(start), start: "09:00", end: "10:00", category: "Focus", reminder: "off" });
     setError("");
     setNotice("");
   }
@@ -98,7 +101,7 @@ export default function CalendarPage() {
       body: { workspace_id: workspace.id, status: "planned", ...values },
     });
     const overlaps = (response.meta as { warnings?: Overlap[] }).warnings ?? [];
-    return overlaps.reduce((n, w) => n + (w.code === "TIME_BLOCK_OVERLAP" ? w.block_ids.length : 0), 0);
+    return { id: response.data.id, overlaps: overlaps.reduce((n, w) => n + (w.code === "TIME_BLOCK_OVERLAP" ? w.block_ids.length : 0), 0) };
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -113,10 +116,12 @@ export default function CalendarPage() {
     setSaving(true);
     setError("");
     try {
-      const overlaps = await create({
+      const { id, overlaps } = await create({
         title: form.title.trim(), category: form.category,
         starts_at: startsAt.toISOString(), ends_at: endsAt.toISOString(),
       });
+      const reminder = START_CHOICES.find((c) => c.id === form.reminder);
+      if (reminder?.offsets.length) await reminders.setReminders("time_block", id, reminder.offsets);
       // Show the week the block landed in.
       const target = mondayOf(startsAt);
       const current = mondayOf(new Date(today ?? Date.now()));
@@ -194,6 +199,7 @@ export default function CalendarPage() {
             <div className="grant-form-grid">
               <label>What is it for?<input required maxLength={240} value={form.title} onChange={set("title")} placeholder="e.g. Write the MIPT motivation letter" /></label>
               <label>Type<select value={form.category} onChange={set("category")}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select></label>
+              <label>Remind me<select value={form.reminder} onChange={set("reminder")}>{START_CHOICES.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}</select></label>
               <label>Date<input required type="date" value={form.date} onChange={set("date")} /></label>
               <div className="block-times">
                 <label>Starts<input required type="time" value={form.start} onChange={set("start")} /></label>
@@ -230,7 +236,16 @@ export default function CalendarPage() {
                         <span className="time-block-time">{timeLabel(block.starts_at)}–{timeLabel(block.ends_at)}</span>
                         <strong>{block.title}</strong>
                         <span className="time-block-category">{block.category}</span>
-                        <button type="button" className="time-block-delete" onClick={() => void remove(block)} disabled={saving} aria-label={`Delete ${block.title}`}>×</button>
+                        <div className="time-block-actions">
+                          <ReminderPicker
+                            label={`Reminder for ${block.title}`}
+                            choices={START_CHOICES}
+                            current={reminders.offsetsFor("time_block", block.id)}
+                            onChange={async (offsets) => (await reminders.setReminders("time_block", block.id, offsets))
+                              ? "That time has already passed." : ""}
+                          />
+                          <button type="button" className="time-block-delete" onClick={() => void remove(block)} disabled={saving} aria-label={`Delete ${block.title}`}>×</button>
+                        </div>
                       </li>
                     ))}
                   </ul>

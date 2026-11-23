@@ -5,6 +5,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/api/client";
 import { UndoBar } from "@/components/undo-bar";
 import { useFormFocus } from "@/lib/use-form-focus";
+import { ReminderPicker } from "@/components/reminder-picker";
+import { DEADLINE_CHOICES, useReminders } from "@/lib/reminders";
+
+const CLOSED_GRANT = ["submitted", "awarded", "rejected", "not_eligible"];
+const pastNote = (n: number) => (n ? "That time has already passed, so no reminder was set." : "");
 import { STARTER_GRANTS } from "@/lib/grants/starter";
 import type { Project, Workspace } from "@/lib/types/domain";
 
@@ -124,6 +129,7 @@ export default function GrantsPage() {
   const [notice, setNotice] = useState("");
   // The last deleted opportunity, kept briefly so it can be undone.
   const [deleted, setDeleted] = useState<Opportunity | null>(null);
+  const reminders = useReminders(workspace?.id);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -412,6 +418,14 @@ export default function GrantsPage() {
                   {item.other_source && <span><b>Found via</b>{item.other_source}</span>}
                 </div>
                 {item.eligibility_notes && <p className="grant-notes">{item.eligibility_notes}</p>}
+                {item.deadline_at && !CLOSED_GRANT.includes(item.status) && (
+                  <ReminderPicker
+                    label={`Reminder for ${item.title}`}
+                    choices={DEADLINE_CHOICES}
+                    current={reminders.offsetsFor("funding_opportunity", item.id)}
+                    onChange={async (offsets) => pastNote(await reminders.setReminders("funding_opportunity", item.id, offsets))}
+                  />
+                )}
                 <div className="grant-card-actions">
                   {item.official_link && (
                     <a className="button button-primary button-link" href={item.official_link} target="_blank" rel="noopener noreferrer">

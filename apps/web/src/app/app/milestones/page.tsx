@@ -5,6 +5,8 @@ import Link from "next/link";
 import { apiRequest } from "@/lib/api/client";
 import type { Milestone, Project, Workspace } from "@/lib/types/domain";
 import { useFormFocus } from "@/lib/use-form-focus";
+import { ReminderPicker } from "@/components/reminder-picker";
+import { DEADLINE_CHOICES, useReminders } from "@/lib/reminders";
 
 const STATUSES = ["not_started", "in_progress", "at_risk", "blocked", "complete"] as const;
 type Status = (typeof STATUSES)[number];
@@ -24,6 +26,7 @@ export default function MilestonesPage() {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const formRef = useFormFocus<HTMLElement>(form ? "new" : null);
+  const reminders = useReminders(workspace?.id);
 
   const load = useCallback(async () => {
     try {
@@ -161,6 +164,15 @@ export default function MilestonesPage() {
                     <h3>{milestone.title}</h3>
                     <p className="milestone-meta">{[project, label(milestone.status), due && `Due ${due}`].filter(Boolean).join(" · ")}</p>
                     <p>{milestone.description || "A meaningful checkpoint in the work."}</p>
+                    {milestone.due_at && milestone.status !== "complete" && milestone.status !== "archived" && (
+                      <ReminderPicker
+                        label={`Reminder for ${milestone.title}`}
+                        choices={DEADLINE_CHOICES}
+                        current={reminders.offsetsFor("milestone", milestone.id)}
+                        onChange={async (offsets) => (await reminders.setReminders("milestone", milestone.id, offsets))
+                          ? "That time has already passed, so no reminder was set." : ""}
+                      />
+                    )}
                   </div>
                   <div className="milestone-progress">
                     <b>{progress}%</b>

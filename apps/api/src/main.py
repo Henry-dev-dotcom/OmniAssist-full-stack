@@ -1,3 +1,7 @@
+import asyncio
+import contextlib
+from collections.abc import AsyncIterator
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -27,7 +31,25 @@ from src.infrastructure.observability.logging import configure_logging
 
 configure_logging(settings.log_level)
 
-app = FastAPI(title="OmniAssist API", version="0.1.0")
+
+@contextlib.asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    """Starts the reminder dispatcher alongside the API when configured (see config)."""
+    task = None
+    if settings.reminders_in_process:
+        from src.workers.reminder_worker import main as run_reminders
+
+        task = asyncio.create_task(run_reminders())
+    try:
+        yield
+    finally:
+        if task is not None:
+            task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await task
+
+
+app = FastAPI(title="OmniAssist API", version="0.1.0", lifespan=lifespan)
 app.middleware("http")(request_id_middleware)
 # The web client runs on another origin; bearer tokens, not cookies, so no credentials.
 app.add_middleware(

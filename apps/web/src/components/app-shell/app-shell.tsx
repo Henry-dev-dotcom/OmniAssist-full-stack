@@ -7,6 +7,7 @@ import {
   CalendarIcon, GrantsIcon, MilestonesIcon, MoreIcon, ProjectsIcon, ResearchIcon, ScholarshipsIcon, SetupIcon,
   SignOutIcon, TodayIcon,
 } from "@/components/icons";
+import { NotificationBell } from "@/components/notification-bell";
 
 type NavItem = { href: string; label: string; Icon: (props: { className?: string }) => React.ReactNode };
 
@@ -90,7 +91,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <main className="product-main" id="app-main" tabIndex={-1}>
         <header className="product-topbar">
           <p className="topbar-label">OmniAssist workspace</p>
-          <div className="user-pill"><span aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span><b><span className="sr-only">Signed in as </span>{name}</b></div>
+          <div className="topbar-actions">
+            <NotificationBell />
+            <div className="user-pill"><span aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span><b><span className="sr-only">Signed in as </span>{name}</b></div>
+          </div>
         </header>
         {children}
       </main>
