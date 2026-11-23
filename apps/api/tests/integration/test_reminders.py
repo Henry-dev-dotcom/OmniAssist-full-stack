@@ -40,7 +40,10 @@ async def push(c: httpx.AsyncClient, ws: str, who: str, entity_type: str, change
 
 
 async def scholarship(c: httpx.AsyncClient, ws: str, due_in: timedelta | None) -> str:
-    section = await push(c, ws, "ada", "scholarship_section", {"name": "Russia"})
+    # Section names are unique per workspace, so each call gets its own.
+    section = await push(
+        c, ws, "ada", "scholarship_section", {"name": f"Section {uuid.uuid4().hex[:8]}"}
+    )
     deadline = (datetime.now(UTC) + due_in).isoformat() if due_in else None
     return await push(
         c, ws, "ada", "scholarship_application",
