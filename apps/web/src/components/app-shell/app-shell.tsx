@@ -3,20 +3,24 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearSession, readSession } from "@/lib/auth/session";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
+import {
+  CalendarIcon, GrantsIcon, MilestonesIcon, MoreIcon, ProjectsIcon, ResearchIcon, ScholarshipsIcon, SetupIcon,
+  SignOutIcon, TodayIcon,
+} from "@/components/icons";
 
-type NavItem = { href: string; label: string; icon: string };
+type NavItem = { href: string; label: string; Icon: (props: { className?: string }) => React.ReactNode };
 
 // Phones show the first four as tabs and the rest under More; the sidebar shows them all.
 const primary: NavItem[] = [
-  { href: "/app/today", label: "Today", icon: "◷" },
-  { href: "/app/projects", label: "Projects", icon: "▤" },
-  { href: "/app/grants", label: "Grants", icon: "◈" },
-  { href: "/app/scholarships", label: "Scholarships", icon: "✦" },
+  { href: "/app/today", label: "Today", Icon: TodayIcon },
+  { href: "/app/projects", label: "Projects", Icon: ProjectsIcon },
+  { href: "/app/grants", label: "Grants", Icon: GrantsIcon },
+  { href: "/app/scholarships", label: "Scholarships", Icon: ScholarshipsIcon },
 ];
 const secondary: NavItem[] = [
-  { href: "/app/calendar", label: "Calendar", icon: "□" },
-  { href: "/app/milestones", label: "Milestones", icon: "◇" },
-  { href: "/app/research", label: "Research", icon: "⌕" },
+  { href: "/app/calendar", label: "Calendar", Icon: CalendarIcon },
+  { href: "/app/milestones", label: "Milestones", Icon: MilestonesIcon },
+  { href: "/app/research", label: "Research", Icon: ResearchIcon },
 ];
 const nav = [...primary, ...secondary];
 
@@ -67,7 +71,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       aria-current={pathname === item.href ? "page" : undefined}
       onClick={onClick}
     >
-      <span aria-hidden="true">{item.icon}</span>{item.label}
+      <item.Icon />{item.label}
     </Link>
   );
 
@@ -79,13 +83,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <p className="workspace-caption">My workspace</p>
         <nav className="product-nav" aria-label="Workspace navigation">{nav.map((item) => link(item, "product-nav-link"))}</nav>
         <div className="sidebar-bottom">
-          <Link className="product-nav-link" href="/onboarding"><span aria-hidden="true">＋</span>Workspace setup</Link>
-          <button className="signout-button" type="button" onClick={signOut}>Sign out</button>
+          <Link className="product-nav-link" href="/onboarding"><SetupIcon />Workspace setup</Link>
+          <button className="signout-button" type="button" onClick={signOut}><SignOutIcon />Sign out</button>
         </div>
       </aside>
       <main className="product-main" id="app-main" tabIndex={-1}>
         <header className="product-topbar">
-          <div><p className="topbar-label">OmniAssist workspace</p><p className="topbar-subtitle">A calm place to move the work forward.</p></div>
+          <p className="topbar-label">OmniAssist workspace</p>
           <div className="user-pill"><span aria-hidden="true">{name.slice(0, 1).toUpperCase()}</span><b><span className="sr-only">Signed in as </span>{name}</b></div>
         </header>
         {children}
@@ -100,13 +104,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           aria-controls={moreId}
           onClick={() => setMoreOpen((open) => !open)}
         >
-          <span aria-hidden="true">⋯</span>More
+          <MoreIcon />More
         </button>
         {moreOpen && (
           <div className="mobile-more-panel" id={moreId} ref={morePanel}>
             {secondary.map((item) => link(item, "mobile-more-link", () => setMoreOpen(false)))}
-            <Link className="mobile-more-link" href="/onboarding" onClick={() => setMoreOpen(false)}><span aria-hidden="true">＋</span>Workspace setup</Link>
-            <button className="mobile-more-link mobile-more-signout" type="button" onClick={signOut}><span aria-hidden="true">↩</span>Sign out</button>
+            <Link className="mobile-more-link" href="/onboarding" onClick={() => setMoreOpen(false)}><SetupIcon />Workspace setup</Link>
+            <button className="mobile-more-link mobile-more-signout" type="button" onClick={signOut}><SignOutIcon />Sign out</button>
           </div>
         )}
       </nav>
