@@ -1,0 +1,29 @@
+name: Keep API awake
+
+# The API runs on Render's free plan, which sleeps after 15 minutes without requests. The
+# reminder dispatcher runs inside the API, so a sleeping API sends nothing until someone opens
+# the app. A request every 10 minutes keeps it awake.
+#
+# This uses about 720 of Render's 750 free instance hours a month. Disable it (Actions tab >
+# Keep API awake > Disable workflow) if other free Render services need those hours, or delete
+# it if the API moves to a plan that does not sleep.
+#
+# GitHub can delay scheduled runs under load, so a reminder may occasionally arrive a few
+# minutes late. None are lost: the dispatcher sends anything already due when it next runs.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Ping the API health endpoint
+        # A cold start can take close to a minute, hence the long timeout.
+        run: curl --fail --silent --show-error --max-time 90 --retry 2 https://omniassist-api.onrender.com/api/v1/health/live
