@@ -443,6 +443,11 @@ export default function ScholarshipsPage() {
                             {STATUSES.map((s) => <option key={s} value={s}>{label(s)}</option>)}
                           </select>
                         </label>
+                        {item.portal_link && (
+                          <a className="button button-primary button-link" href={item.portal_link} target="_blank" rel="noopener noreferrer">
+                            Visit site<span aria-hidden="true">↗</span><span className="sr-only"> for {item.university} (opens in a new tab)</span>
+                          </a>
+                        )}
                         <button className="button button-secondary" type="button" onClick={() => show({ kind: "application", editing: item })}>Edit</button>
                         <button className="button button-danger" type="button" onClick={() => removeApplication(item)} disabled={busy}>Delete</button>
                       </div>

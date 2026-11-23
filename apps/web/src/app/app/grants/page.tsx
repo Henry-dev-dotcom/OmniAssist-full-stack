@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/api/client";
 import { UndoBar } from "@/components/undo-bar";
+import { STARTER_GRANTS } from "@/lib/grants/starter";
 import type { Project, Workspace } from "@/lib/types/domain";
 
 type FundingStatus =
@@ -58,6 +59,8 @@ const statuses: FundingStatus[] = [
   "not_started", "researching", "preparing", "submitted", "awarded", "rejected", "not_eligible",
 ];
 const priorities: FundingPriority[] = ["high", "medium", "low"];
+const deadlineTypes = ["Confirmed", "Projected", "Rolling", "Not announced", "Unverified", "Closed"];
+const sameTitle = (a: string, b: string) => a.trim().toLowerCase() === b.trim().toLowerCase();
 const blankForm = (): GrantForm => ({
   project_id: "", category: "Project funding", title: "", organisation: "", amount: "",
   opens_label: "", deadline: "", deadline_type: "Not announced", eligibility_notes: "",
@@ -112,6 +115,7 @@ export default function GrantsPage() {
   const [showForm, setShowForm] = useState(false);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [priorityFilter, setPriorityFilter] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -159,9 +163,16 @@ export default function GrantsPage() {
     return opportunities.filter((item) => {
       const matchesQuery = !q || [item.title, item.organisation, item.category]
         .some((value) => value.toLowerCase().includes(q));
-      return matchesQuery && (!statusFilter || item.status === statusFilter);
+      return matchesQuery && (!statusFilter || item.status === statusFilter)
+        && (!priorityFilter || item.priority === priorityFilter);
     });
-  }, [opportunities, query, statusFilter]);
+  }, [opportunities, query, statusFilter, priorityFilter]);
+
+  // Starter opportunities not yet in the workspace, matched by title.
+  const missingStarters = useMemo(
+    () => STARTER_GRANTS.filter((seed) => !opportunities.some((item) => sameTitle(item.title, seed.title))),
+    [opportunities],
+  );
 
   function startNew() {
     setEditing(null);
@@ -256,6 +267,43 @@ export default function GrantsPage() {
     }
   }
 
+  async function addStarters() {
+    if (!workspace || !missingStarters.length) return;
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      const response = await apiRequest<{ results: { status: string; message?: string }[] }>("/sync/push", {
+        method: "POST",
+        body: {
+          device_id: newId(),
+          protocol_version: 1,
+          cursor: 0,
+          mutations: missingStarters.map((seed) => ({
+            mutation_id: newId(),
+            workspace_id: workspace.id,
+            entity_type: "funding_opportunity",
+            entity_id: newId(),
+            operation: "create",
+            changes: { ...seed, project_id: null, date_applied: null, next_action: null },
+          })),
+        },
+      });
+      const results = response.data.results;
+      const added = results.filter((r) => r.status === "accepted").length;
+      await load();
+      if (added < results.length) {
+        setError(`Added ${added} of ${results.length} opportunities. ${results.find((r) => r.status !== "accepted")?.message ?? ""}`.trim());
+      } else {
+        setNotice(`Added ${added} ${added === 1 ? "opportunity" : "opportunities"} from your MPhil tracker.`);
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Could not add the starter opportunities.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
   // A deleted record's id cannot be reused, so the restored opportunity is a new record.
   async function undoDelete() {
     if (!deleted) return;
@@ -281,9 +329,16 @@ export default function GrantsPage() {
           <h1>Grant tracking</h1>
           <p className="page-lede">Keep opportunities, deadlines, eligibility notes, and next steps together.</p>
         </div>
-        <button className="button button-primary" type="button" onClick={startNew} disabled={!workspace}>
-          Add opportunity
-        </button>
+        <div className="grant-card-actions">
+          {!loading && missingStarters.length > 0 && opportunities.length > 0 && (
+            <button className="button button-secondary" type="button" onClick={() => void addStarters()} disabled={!workspace || saving}>
+              Add MPhil tracker ({missingStarters.length})
+            </button>
+          )}
+          <button className="button button-primary" type="button" onClick={startNew} disabled={!workspace}>
+            Add opportunity
+          </button>
+        </div>
       </div>
 
       {error && <div className="notice notice-error" role="alert">{error}</div>}
@@ -308,7 +363,7 @@ export default function GrantsPage() {
               <label>Linked project<select value={form.project_id} onChange={(e) => update("project_id", e.target.value)}><option value="">No project linked</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}</select></label>
               <label>Application status<select value={form.status} onChange={(e) => update("status", e.target.value as FundingStatus)}>{statuses.map((status) => <option key={status} value={status}>{label(status)}</option>)}</select></label>
               <label>Priority<select value={form.priority} onChange={(e) => update("priority", e.target.value as FundingPriority)}>{priorities.map((priority) => <option key={priority} value={priority}>{label(priority)}</option>)}</select></label>
-              <label>Deadline type<select value={form.deadline_type} onChange={(e) => update("deadline_type", e.target.value)}>{["Confirmed", "Projected", "Not announced", "Closed"].map((value) => <option key={value}>{value}</option>)}</select></label>
+              <label>Deadline type<select value={form.deadline_type} onChange={(e) => update("deadline_type", e.target.value)}>{(deadlineTypes.includes(form.deadline_type) ? deadlineTypes : [...deadlineTypes, form.deadline_type]).map((value) => <option key={value}>{value}</option>)}</select></label>
               <label>Deadline<input type="date" value={form.deadline} onChange={(e) => update("deadline", e.target.value)} /></label>
               <label>Application date<input type="date" value={form.date_applied} onChange={(e) => update("date_applied", e.target.value)} /></label>
               <label>Opening information<input maxLength={120} value={form.opens_label} onChange={(e) => update("opens_label", e.target.value)} placeholder="e.g. Call opens in September" /></label>
@@ -334,6 +389,7 @@ export default function GrantsPage() {
           <div className="grant-filters">
             <label>Search<input type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Title, organisation, category" /></label>
             <label>Status<select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="">All statuses</option>{statuses.map((status) => <option key={status} value={status}>{label(status)}</option>)}</select></label>
+            <label>Priority<select value={priorityFilter} onChange={(e) => setPriorityFilter(e.target.value)}><option value="">Any priority</option>{priorities.map((priority) => <option key={priority} value={priority}>{label(priority)}</option>)}</select></label>
           </div>
         </div>
 
@@ -346,14 +402,20 @@ export default function GrantsPage() {
                   <span className="status-badge">{label(item.status)}</span>
                 </div>
                 <div className="grant-facts">
-                  <span><b>Deadline</b>{dateLabel(item.deadline_at)}{item.deadline_type !== "Confirmed" && item.deadline_at ? ` · ${item.deadline_type.toLowerCase()}` : ""}</span>
+                  <span><b>Deadline</b>{item.deadline_at ? `${dateLabel(item.deadline_at)}${item.deadline_type !== "Confirmed" ? ` · ${item.deadline_type.toLowerCase()}` : ""}` : item.deadline_type}</span>
+                  {item.opens_label && <span><b>Opens</b>{item.opens_label}</span>}
                   <span><b>Priority</b>{label(item.priority)}</span>
                   {item.amount && <span><b>Support</b>{item.amount}</span>}
                   {item.next_action && <span><b>Next action</b>{item.next_action}</span>}
+                  {item.other_source && <span><b>Found via</b>{item.other_source}</span>}
                 </div>
                 {item.eligibility_notes && <p className="grant-notes">{item.eligibility_notes}</p>}
-                {item.official_link && <a className="grant-source" href={item.official_link} target="_blank" rel="noreferrer">Open official opportunity page</a>}
                 <div className="grant-card-actions">
+                  {item.official_link && (
+                    <a className="button button-primary button-link" href={item.official_link} target="_blank" rel="noopener noreferrer">
+                      Visit site<span aria-hidden="true">↗</span><span className="sr-only"> for {item.title} (opens in a new tab)</span>
+                    </a>
+                  )}
                   <button className="button button-secondary" type="button" onClick={() => startEdit(item)}>Edit</button>
                   <button className="button button-danger" type="button" onClick={() => void remove(item)} disabled={saving}>Delete</button>
                 </div>
@@ -361,7 +423,15 @@ export default function GrantsPage() {
             ))}
           </div>
         ) : (
-          <div className="grant-empty"><h3>{opportunities.length ? "No matching opportunities." : "No grants tracked yet."}</h3><p>{opportunities.length ? "Change the search or status filter." : "Add a funding opportunity to start tracking deadlines, eligibility, and next actions."}</p></div>
+          <div className="grant-empty">
+            <h3>{opportunities.length ? "No matching opportunities." : "No grants tracked yet."}</h3>
+            <p>{opportunities.length ? "Change the search, status or priority filter." : `Add a funding opportunity, or load your MPhil tracker of ${STARTER_GRANTS.length} opportunities (ESHG, KNUST GReF, AfSHG and more).`}</p>
+            {!opportunities.length && (
+              <button className="button button-primary" type="button" onClick={() => void addStarters()} disabled={!workspace || saving}>
+                {saving ? "Adding…" : `Load MPhil tracker (${STARTER_GRANTS.length})`}
+              </button>
+            )}
+          </div>
         )}
       </section>
     </div>
