@@ -11,6 +11,8 @@ import {
   starterChanges, type Change,
 } from "@/lib/scholarships/api";
 import { UndoBar } from "@/components/undo-bar";
+import { ReminderPicker } from "@/components/reminder-picker";
+import { DEADLINE_CHOICES, useReminders } from "@/lib/reminders";
 import { scholarshipsFromCsv, scholarshipsToCsv } from "@/lib/scholarships/csv";
 import {
   CHECKLIST, CLOSED, STATUSES, blankDraft, checklistProgress, daysUntil, draftFromScholarship, label,
@@ -57,6 +59,7 @@ export default function ScholarshipsPage() {
   // The last delete, kept briefly so it can be undone.
   const [undo, setUndo] = useState<{ message: string; changes: Change[] } | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const reminders = useReminders(workspace?.id);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -437,6 +440,15 @@ export default function ScholarshipsPage() {
                         {CHECKLIST.map(({ key, label: stepLabel }) => <li key={key} data-step={item[key]}>{stepLabel}: {label(item[key])}</li>)}
                       </ul>
                       {item.notes && <p className="grant-notes">{item.notes}</p>}
+                      {item.deadline_at && !CLOSED.includes(item.status) && (
+                        <ReminderPicker
+                          label={`Reminder for ${item.university}`}
+                          choices={DEADLINE_CHOICES}
+                          current={reminders.offsetsFor("scholarship_application", item.id)}
+                          onChange={async (offsets) => (await reminders.setReminders("scholarship_application", item.id, offsets))
+                            ? "That time has already passed, so no reminder was set." : ""}
+                        />
+                      )}
                       <div className="grant-card-actions">
                         <label className="scholarship-status-select">Status
                           <select value={item.status} disabled={busy} onChange={(e) => changeStatus(item, e.target.value as ScholarshipStatus)}>

@@ -7,7 +7,7 @@ from fastapi import APIRouter, Query, Request
 from src.api.responses import envelope
 from src.auth.dependencies import CurrentActor, Session
 from src.domain.common.errors import DomainError, ErrorCode
-from src.domain.notifications import repository
+from src.domain.notifications import reminders, repository
 from src.domain.notifications.models import NotificationOut, ReminderSet, Snooze
 from src.domain.tasks import repository as tasks
 from src.domain.workspaces.service import require_member
@@ -89,6 +89,42 @@ async def set_task_reminders(
     now = datetime.now(UTC)
     rows = await repository.set_task_reminders(
         session, task, body.offsets, body.urgency, body.channel, now
+    )
+    await session.commit()
+    skipped = len(body.offsets) - len(rows)
+    warnings = [{"code": "REMINDER_IN_PAST", "count": skipped}] if skipped else []
+    return envelope(request, [_out(r) for r in rows], warnings=warnings)
+
+
+@router.get("/reminders")
+async def scheduled_reminders(
+    request: Request,
+    actor: CurrentActor,
+    session: Session,
+    workspace_id: Annotated[uuid.UUID, Query()],
+) -> dict[str, Any]:
+    """Every reminder still to go out in the workspace, so pages can show what each record has."""
+    await require_member(session, workspace_id, actor.user_id)
+    rows = await reminders.list_scheduled(session, workspace_id)
+    return envelope(request, [_out(r) for r in rows])
+
+
+@router.put("/reminders/{entity_type}/{entity_id}")
+async def set_reminders(
+    entity_type: str,
+    entity_id: uuid.UUID,
+    body: ReminderSet,
+    request: Request,
+    actor: CurrentActor,
+    session: Session,
+) -> dict[str, Any]:
+    """Replaces the reminders on a grant, scholarship application, milestone or time block."""
+    reminders.source(entity_type)
+    record = await reminders.load(session, entity_type, entity_id, actor.user_id)
+    if record is None:
+        raise reminders.NOT_FOUND
+    rows = await reminders.set_reminders(
+        session, entity_type, record, body.offsets, body.urgency, body.channel, datetime.now(UTC)
     )
     await session.commit()
     skipped = len(body.offsets) - len(rows)

@@ -58,7 +58,7 @@ class WebPushGateway:
             {
                 "title": message.title or "Reminder",
                 "tag": message.notification_id,
-                "url": "/#/app/notifications",
+                "url": "/app/today?notifications=open",
             }
         )
         gone = []

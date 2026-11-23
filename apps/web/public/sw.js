@@ -1,4 +1,4 @@
-const CACHE_NAME = "omniassist-static-v3";
+const CACHE_NAME = "omniassist-static-v4";
 const OFFLINE_PAGE = "/offline.html";
 const PRECACHE_URLS = [
   OFFLINE_PAGE,
@@ -77,6 +77,44 @@ self.addEventListener("fetch", (event) => {
 
       if (canCache) await cache.put(request, response.clone());
       return response;
+    })(),
+  );
+});
+
+// Reminders sent by the API (Web Push). The payload is { title, tag, url }; the API encrypts it
+// to this device, so the push service never sees it.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: event.data ? event.data.text() : "" };
+  }
+  const url = typeof data.url === "string" && data.url.startsWith("/") ? data.url : "/app/today?notifications=open";
+  event.waitUntil(
+    self.registration.showNotification(data.title || "OmniAssist reminder", {
+      body: "Open OmniAssist to see the details.",
+      tag: data.tag || undefined,
+      icon: "/icons/icon-192.png",
+      badge: "/icons/icon-192.png",
+      data: { url },
+    }),
+  );
+});
+
+// Tapping a reminder focuses an open OmniAssist window, or opens one.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/app/today?notifications=open";
+  event.waitUntil(
+    (async () => {
+      const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+      const open = windows.find((client) => new URL(client.url).origin === self.location.origin);
+      if (open) {
+        await open.navigate(url);
+        return open.focus();
+      }
+      return self.clients.openWindow(url);
     })(),
   );
 });

@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.domain.notifications import repository, service
+from src.domain.notifications import reminders, repository, service
 from src.infrastructure.notifications.gateway import (
     DeliveryError,
     InAppGateway,
@@ -48,7 +48,8 @@ async def dispatch_due(
     due = await s.execute(
         text(
             """SELECT n.id, n.workspace_id, n.entity_type, n.entity_id, n.title, n.urgency,
-              n.channel, n.delivery_status, u.timezone, u.preferences, u.id AS user_id
+              n.channel, n.delivery_status, n.offset_spec, n.remind_at, u.timezone,
+              u.preferences, u.id AS user_id
             FROM notifications n JOIN workspaces w ON w.id = n.workspace_id
             JOIN users u ON u.id = w.owner_id
             WHERE n.deleted_at IS NULL AND (
@@ -62,14 +63,30 @@ async def dispatch_due(
     from zoneinfo import ZoneInfo
 
     for r in [dict(x) for x in due.mappings()]:
-        if not await _still_relevant(s, r["entity_type"], r["entity_id"]):
+        tz = ZoneInfo(r["timezone"])
+        quiet = service.quiet_hours(r["preferences"])
+        if r["entity_type"] in reminders.SOURCES:
+            check = await reminders.check_due(s, r, tz, quiet, now)
+            if check.action == "cancel":
+                await repository.cancel_for_entity(s, r["entity_type"], r["entity_id"])
+                result.cancelled += 1
+                continue
+            if check.action == "reschedule":
+                await s.execute(
+                    text(
+                        "UPDATE notifications SET remind_at = :t, title = :title, "
+                        "updated_at = now() WHERE id = :i"
+                    ),
+                    {"t": check.when, "title": check.title, "i": r["id"]},
+                )
+                result.deferred += 1
+                continue
+            r["title"] = check.title or r["title"]
+        elif not await _still_relevant(s, r["entity_type"], r["entity_id"]):
             await repository.cancel_for_entity(s, r["entity_type"], r["entity_id"])
             result.cancelled += 1
             continue
-        tz = ZoneInfo(r["timezone"])
-        later = service.respect_quiet_hours(
-            now, r["urgency"], service.quiet_hours(r["preferences"]), tz
-        )
+        later = service.respect_quiet_hours(now, r["urgency"], quiet, tz)
         if later > now:  # quiet hours began after this was scheduled
             col = "snoozed_until" if r["delivery_status"] == "snoozed" else "remind_at"
             await s.execute(
@@ -90,26 +107,31 @@ async def dispatch_due(
         await s.execute(
             text(
                 """UPDATE notifications SET delivery_status = :st, failure_reason = :why,
-                  sent_at = :now, snoozed_until = NULL,
+                  sent_at = :now, snoozed_until = NULL, title = :title,
                   read_at = CASE WHEN delivery_status = 'snoozed' THEN NULL
                     ELSE read_at END, updated_at = now(), version = version + 1
                 WHERE id = :i"""
             ),
-            {"st": status, "why": reason, "now": now, "i": r["id"]},
+            {"st": status, "why": reason, "now": now, "i": r["id"], "title": r["title"]},
         )
     return result
 
 
-async def main(interval_seconds: int = 30) -> None:  # pragma: no cover - process loop
+def default_gateway() -> NotificationGateway:  # pragma: no cover - wiring
     from src.config import settings
     from src.infrastructure.database.session import SessionFactory
     from src.infrastructure.notifications.webpush import WebPushGateway
 
-    gateway: NotificationGateway = (
-        WebPushGateway(SessionFactory, settings.vapid_private_key, settings.vapid_subject)
-        if settings.vapid_private_key
-        else InAppGateway()
-    )
+    if settings.vapid_private_key:
+        return WebPushGateway(SessionFactory, settings.vapid_private_key, settings.vapid_subject)
+    return InAppGateway()
+
+
+async def main(interval_seconds: int = 30) -> None:  # pragma: no cover - process loop
+    """Runs forever: standalone (`python -m src.workers.reminder_worker`) or inside the API."""
+    from src.infrastructure.database.session import SessionFactory
+
+    gateway = default_gateway()
     while True:
         try:
             async with SessionFactory() as s:
