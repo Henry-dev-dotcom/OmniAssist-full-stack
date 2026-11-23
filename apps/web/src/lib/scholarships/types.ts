@@ -63,7 +63,7 @@ export type Scholarship = Omit<ScholarshipDraft, "deadline"> & Stored & {
 export type StarterSection = SectionDraft & { schemes: SchemeDraft[]; applications: ScholarshipDraft[] };
 
 export const label = (value: string) =>
-  value.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+  value.replaceAll("_", " ").replace(/^\w/, (c) => c.toUpperCase());
 
 export function blankDraft(): ScholarshipDraft {
   return {

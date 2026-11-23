@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiRequest } from "@/lib/api/client";
 import { UndoBar } from "@/components/undo-bar";
+import { useFormFocus } from "@/lib/use-form-focus";
 import { STARTER_GRANTS } from "@/lib/grants/starter";
 import type { Project, Workspace } from "@/lib/types/domain";
 
@@ -68,7 +69,7 @@ const blankForm = (): GrantForm => ({
   official_link: "", other_source: "",
 });
 const newId = () => crypto.randomUUID();
-const label = (value: string) => value.replaceAll("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
+const label = (value: string) => value.replaceAll("_", " ").replace(/^\w/, (c) => c.toUpperCase());
 const dateValue = (value: string | null) => value ? value.slice(0, 10) : "";
 const dateLabel = (value: string | null) => value
   ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(value))
@@ -113,6 +114,7 @@ export default function GrantsPage() {
   const [form, setForm] = useState<GrantForm>(blankForm);
   const [editing, setEditing] = useState<Opportunity | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const formRef = useFormFocus<HTMLElement>(showForm ? editing?.id ?? "new" : null);
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [priorityFilter, setPriorityFilter] = useState("");
@@ -346,7 +348,7 @@ export default function GrantsPage() {
       {deleted && <UndoBar message={`“${deleted.title}” deleted.`} busy={saving} onUndo={() => void undoDelete()} onDismiss={() => setDeleted(null)} />}
 
       {showForm && (
-        <section className="panel grant-form-panel" aria-labelledby="grant-form-title">
+        <section ref={formRef} className="panel grant-form-panel" aria-labelledby="grant-form-title">
           <div className="panel-heading">
             <div>
               <p className="eyebrow">Opportunity details</p>
@@ -425,10 +427,10 @@ export default function GrantsPage() {
         ) : (
           <div className="grant-empty">
             <h3>{opportunities.length ? "No matching opportunities." : "No grants tracked yet."}</h3>
-            <p>{opportunities.length ? "Change the search, status or priority filter." : `Add a funding opportunity, or load your MPhil tracker of ${STARTER_GRANTS.length} opportunities (ESHG, KNUST GReF, AfSHG and more).`}</p>
+            <p>{opportunities.length ? "Change the search, status or priority filter." : `Add a funding opportunity, or add your MPhil tracker of ${STARTER_GRANTS.length} opportunities (ESHG, KNUST GReF, AfSHG and more).`}</p>
             {!opportunities.length && (
               <button className="button button-primary" type="button" onClick={() => void addStarters()} disabled={!workspace || saving}>
-                {saving ? "Adding…" : `Load MPhil tracker (${STARTER_GRANTS.length})`}
+                {saving ? "Adding…" : `Add MPhil tracker (${STARTER_GRANTS.length})`}
               </button>
             )}
           </div>

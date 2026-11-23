@@ -2,6 +2,7 @@
 
 import type { ChangeEvent, FormEvent, ReactNode } from "react";
 import { useState } from "react";
+import { useFormFocus } from "@/lib/use-form-focus";
 import {
   CHECKLIST, STATUSES, STEPS, label,
   type ScholarshipDraft, type ScholarshipStatus, type SchemeDraft, type Section, type SectionDraft,
@@ -10,8 +11,9 @@ import {
 type Common = { busy: boolean; onCancel: () => void };
 
 function Panel({ eyebrow, title, onCancel, children }: { eyebrow: string; title: string; onCancel: () => void; children: ReactNode }) {
+  const ref = useFormFocus<HTMLElement>(true);
   return (
-    <section className="panel grant-form-panel" aria-label={title}>
+    <section ref={ref} className="panel grant-form-panel" aria-label={title}>
       <div className="panel-heading">
         <div><p className="eyebrow">{eyebrow}</p><h2>{title}</h2></div>
         <button className="button button-secondary" type="button" onClick={onCancel}>Cancel</button>
