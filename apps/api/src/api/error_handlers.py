@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -12,10 +13,16 @@ log = logging.getLogger(__name__)
 
 
 def error_response(
-    request: Request, code: ErrorCode, message: str, details: dict[str, Any] | None = None
+    request: Request,
+    code: ErrorCode,
+    message: str,
+    details: dict[str, Any] | None = None,
+    status: int | None = None,
+    headers: Mapping[str, str] | None = None,
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=HTTP_STATUS[code],
+        status_code=status or HTTP_STATUS[code],
+        headers=headers,
         content={
             "error": {
                 "code": code.value,
@@ -43,8 +50,15 @@ def register_error_handlers(app: FastAPI) -> None:
     @app.exception_handler(StarletteHTTPException)
     async def _http(request: Request, exc: StarletteHTTPException) -> JSONResponse:
         by_status = {s: c for c, s in HTTP_STATUS.items() if c != ErrorCode.IDEMPOTENCY_KEY_REUSED}
-        code = by_status.get(exc.status_code, ErrorCode.INTERNAL_ERROR)
-        return error_response(request, code, "Request failed.")
+        code = by_status.get(exc.status_code)
+        if code is None and 400 <= exc.status_code < 500:
+            # A client error without its own code (405 wrong method, 413, 415...) keeps its real
+            # status. Mapping it to INTERNAL_ERROR made it a retryable 500.
+            return error_response(
+                request, ErrorCode.VALIDATION_ERROR, "Request failed.",
+                status=exc.status_code, headers=exc.headers,
+            )  # fmt: skip
+        return error_response(request, code or ErrorCode.INTERNAL_ERROR, "Request failed.")
 
     @app.exception_handler(Exception)
     async def _unhandled(request: Request, exc: Exception) -> JSONResponse:

@@ -81,3 +81,11 @@ def test_unhandled_error_hides_internals() -> None:
 
 def test_unknown_route_is_not_found_code() -> None:
     assert _app().get("/nope").json()["error"]["code"] == "NOT_FOUND"
+
+
+def test_wrong_method_is_405_not_a_retryable_500() -> None:
+    r = _app().post("/domain")
+    assert r.status_code == 405
+    assert r.headers["allow"] == "GET"
+    assert r.json()["error"]["code"] == "VALIDATION_ERROR"
+    assert r.json()["error"]["retryable"] is False
