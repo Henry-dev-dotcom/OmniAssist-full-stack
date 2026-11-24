@@ -1,9 +1,14 @@
+import logging
 import uuid
 from collections.abc import Awaitable, Callable
 
 from fastapi import Request, Response
 
+from src.api.error_handlers import error_response
+from src.domain.common.errors import ErrorCode
 from src.infrastructure.observability.logging import request_id_var
+
+log = logging.getLogger(__name__)
 
 
 async def request_id_middleware(
@@ -14,6 +19,14 @@ async def request_id_middleware(
     token = request_id_var.set(request_id)
     try:
         response = await call_next(request)
+    except Exception as exc:
+        # FastAPI's catch-all handler runs outside CORSMiddleware, so its 500 reached the
+        # browser without CORS headers and showed as "Failed to fetch". Answering here, inside
+        # CORS, lets the web app read the error and its request id.
+        log.error("unhandled error", exc_info=exc)
+        response = error_response(
+            request, ErrorCode.INTERNAL_ERROR, "Something went wrong. Try again."
+        )
     finally:
         request_id_var.reset(token)
     response.headers["X-Request-ID"] = request_id

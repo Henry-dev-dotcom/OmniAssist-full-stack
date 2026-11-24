@@ -89,7 +89,9 @@ export default function CalendarPage() {
 
   function openForm() {
     const start = monday && offset !== 0 ? monday : new Date();
-    setForm({ title: "", date: dateInput(start), start: "09:00", end: "10:00", category: "Focus", reminder: "off" });
+    // Today, suggest the next full hour rather than a 09:00 that may already be past.
+    const hour = offset === 0 ? Math.min(Math.max(new Date().getHours() + 1, 9), 22) : 9;
+    setForm({ title: "", date: dateInput(start), start: `${pad(hour)}:00`, end: `${pad(hour + 1)}:00`, category: "Focus", reminder: "off" });
     setError("");
     setNotice("");
   }

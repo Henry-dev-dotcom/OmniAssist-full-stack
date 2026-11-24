@@ -173,7 +173,8 @@ export default function GrantsPage() {
         .some((value) => value.toLowerCase().includes(q));
       return matchesQuery && (!statusFilter || item.status === statusFilter)
         && (!priorityFilter || item.priority === priorityFilter);
-    });
+    // Closed calls go to the end so the list starts with what can still be applied for.
+    }).sort((a, b) => Number(a.deadline_type === "Closed") - Number(b.deadline_type === "Closed"));
   }, [opportunities, query, statusFilter, priorityFilter]);
 
   // Starter opportunities not yet in the workspace, matched by title.
@@ -432,8 +433,8 @@ export default function GrantsPage() {
                       Visit site<span aria-hidden="true">↗</span><span className="sr-only"> for {item.title} (opens in a new tab)</span>
                     </a>
                   )}
-                  <button className="button button-secondary" type="button" onClick={() => startEdit(item)}>Edit</button>
-                  <button className="button button-danger" type="button" onClick={() => void remove(item)} disabled={saving}>Delete</button>
+                  <button className="button button-secondary" type="button" onClick={() => startEdit(item)} aria-label={`Edit ${item.title}`}>Edit</button>
+                  <button className="button button-danger" type="button" onClick={() => void remove(item)} disabled={saving} aria-label={`Delete ${item.title}`}>Delete</button>
                 </div>
               </article>
             ))}

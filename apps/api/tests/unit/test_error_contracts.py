@@ -89,3 +89,26 @@ def test_wrong_method_is_405_not_a_retryable_500() -> None:
     assert r.headers["allow"] == "GET"
     assert r.json()["error"]["code"] == "VALIDATION_ERROR"
     assert r.json()["error"]["retryable"] is False
+
+
+def test_unhandled_error_keeps_cors_headers() -> None:
+    # Without CORS headers the browser hides the 500 and the app can only say "Failed to fetch".
+    from fastapi.middleware.cors import CORSMiddleware
+
+    app = FastAPI()
+    app.middleware("http")(request_id_middleware)
+    app.add_middleware(CORSMiddleware, allow_origins=["https://web.test"])
+    register_error_handlers(app)
+
+    @app.get("/boom")
+    def boom() -> None:
+        raise RuntimeError("secret internals")
+
+    r = TestClient(app, raise_server_exceptions=False).get(
+        "/boom", headers={"Origin": "https://web.test"}
+    )
+    assert r.status_code == 500
+    assert r.headers["access-control-allow-origin"] == "https://web.test"
+    assert r.json()["error"]["code"] == "INTERNAL_ERROR"
+    assert r.json()["error"]["request_id"] == r.headers["X-Request-ID"]
+    assert "secret" not in r.text

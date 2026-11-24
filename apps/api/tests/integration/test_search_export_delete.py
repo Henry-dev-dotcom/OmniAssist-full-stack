@@ -105,6 +105,8 @@ async def test_export_json_and_csv_with_expiring_signed_link(
 
     r = await client.post("/exports", json={"workspace_id": ws, "format": "json"}, headers=h)
     assert r.status_code == 202
+    # The web app labels the job by its format straight away, before the first status check.
+    assert r.json()["data"]["format"] == "json"
     eid = r.json()["data"]["id"]
     status = (await client.get(f"/exports/{eid}", headers=h)).json()["data"]
     assert status["status"] == "ready", status

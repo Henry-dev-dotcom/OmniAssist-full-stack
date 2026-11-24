@@ -6,6 +6,7 @@ import { apiRequest } from "@/lib/api/client";
 import type { Milestone, Project, Workspace } from "@/lib/types/domain";
 import { useFormFocus } from "@/lib/use-form-focus";
 import { ReminderPicker } from "@/components/reminder-picker";
+import { UndoBar } from "@/components/undo-bar";
 import { DEADLINE_CHOICES, useReminders } from "@/lib/reminders";
 
 const STATUSES = ["not_started", "in_progress", "at_risk", "blocked", "complete"] as const;
@@ -15,17 +16,20 @@ const dueLabel = (value: string | null | undefined) => value
   ? new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(value))
   : null;
 
-type MilestoneForm = { project_id: string; title: string; description: string; due: string; status: Status; progress: string };
+type Row = Milestone & { version?: number };
+type MilestoneForm = { project_id: string; title: string; description: string; due: string; status: Status; progress: string; editing: Row | null };
+type PushResult = { results: { status: string; message?: string }[] };
 
 export default function MilestonesPage() {
   const [workspace, setWorkspace] = useState<Workspace | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
-  const [milestones, setMilestones] = useState<Milestone[]>([]);
+  const [milestones, setMilestones] = useState<Row[]>([]);
+  const [deleted, setDeleted] = useState<Row | null>(null);
   const [form, setForm] = useState<MilestoneForm | null>(null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
-  const formRef = useFormFocus<HTMLElement>(form ? "new" : null);
+  const formRef = useFormFocus<HTMLElement>(form ? form.editing?.id ?? "new" : null);
   const reminders = useReminders(workspace?.id);
 
   const load = useCallback(async () => {
@@ -35,7 +39,7 @@ export default function MilestonesPage() {
       if (!ws) return;
       const [projectResponse, milestoneResponse] = await Promise.all([
         apiRequest<Project[]>(`/projects?workspace_id=${ws.id}&view=all&limit=100`),
-        apiRequest<Milestone[]>(`/milestones?workspace_id=${ws.id}`),
+        apiRequest<Row[]>(`/milestones?workspace_id=${ws.id}`),
       ]);
       setProjects(projectResponse.data);
       setMilestones(milestoneResponse.data);
@@ -47,10 +51,71 @@ export default function MilestonesPage() {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void load(); }, [load]);
 
-  function openForm() {
-    setForm({ project_id: projects[0]?.id ?? "", title: "", description: "", due: "", status: "not_started", progress: "0" });
+  function openForm(editing: Row | null = null) {
+    setForm(editing
+      ? {
+        project_id: editing.project_id, title: editing.title, description: editing.description ?? "",
+        due: editing.due_at ? editing.due_at.slice(0, 10) : "",
+        status: (STATUSES as readonly string[]).includes(editing.status) ? editing.status as Status : "not_started",
+        progress: String(Number(editing.progress_value ?? 0)), editing,
+      }
+      : { project_id: projects[0]?.id ?? "", title: "", description: "", due: "", status: "not_started", progress: "0", editing: null });
     setError("");
     setNotice("");
+  }
+
+  /** One sync mutation for a milestone; throws with the server's reason when it is rejected. */
+  async function push(operation: "create" | "update" | "delete", id: string, changes: Record<string, unknown>, baseVersion?: number) {
+    if (!workspace) throw new Error("No workspace is available.");
+    const response = await apiRequest<PushResult>("/sync/push", {
+      method: "POST",
+      body: {
+        device_id: crypto.randomUUID(), protocol_version: 1, cursor: 0,
+        mutations: [{ mutation_id: crypto.randomUUID(), workspace_id: workspace.id, entity_type: "milestone", entity_id: id, operation, base_version: baseVersion, changes }],
+      },
+    });
+    const result = response.data.results[0];
+    if (result?.status !== "accepted") throw new Error(result?.message ?? "The milestone was not saved.");
+  }
+
+  async function quick(work: () => Promise<void>, message: string) {
+    setSaving(true);
+    setError("");
+    setNotice("");
+    try {
+      await work();
+      await load();
+      if (message) setNotice(message);
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "The milestone could not be updated.");
+      return false;
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const fields = (m: Row) => ({
+    project_id: m.project_id, title: m.title, description: m.description ?? null, status: m.status,
+    due_at: m.due_at ?? null, progress_value: Number(m.progress_value ?? 0), progress_mode: "manual",
+  });
+
+  function toggleDone(m: Row) {
+    const done = m.status !== "complete";
+    void quick(
+      () => push("update", m.id, done ? { status: "complete", progress_value: 100 } : { status: "in_progress" }, m.version),
+      done ? `“${m.title}” marked complete.` : `“${m.title}” reopened.`,
+    );
+  }
+
+  async function remove(m: Row) {
+    if (await quick(() => push("delete", m.id, {}, m.version), "")) setDeleted(m);
+  }
+
+  async function restore() {
+    if (!deleted) return;
+    // A deleted milestone cannot be revived, so it comes back as a new one with the same details.
+    if (await quick(() => push("create", crypto.randomUUID(), fields(deleted)), `“${deleted.title}” restored.`)) setDeleted(null);
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
@@ -60,35 +125,21 @@ export default function MilestonesPage() {
     setSaving(true);
     setError("");
     try {
-      const response = await apiRequest<{ results: { status: string; message?: string }[] }>("/sync/push", {
-        method: "POST",
-        body: {
-          device_id: crypto.randomUUID(),
-          protocol_version: 1,
-          cursor: 0,
-          mutations: [{
-            mutation_id: crypto.randomUUID(),
-            workspace_id: workspace.id,
-            entity_type: "milestone",
-            entity_id: crypto.randomUUID(),
-            operation: "create",
-            changes: {
-              project_id: form.project_id,
-              title: form.title.trim(),
-              description: form.description.trim() || null,
-              status: form.status,
-              due_at: form.due ? `${form.due}T00:00:00Z` : null,
-              progress_value: progress,
-              progress_mode: "manual",
-            },
-          }],
-        },
-      });
-      const result = response.data.results[0];
-      if (result?.status !== "accepted") throw new Error(result?.message ?? "The milestone was not saved.");
+      const changes = {
+        project_id: form.project_id,
+        title: form.title.trim(),
+        description: form.description.trim() || null,
+        status: form.status,
+        due_at: form.due ? `${form.due}T00:00:00Z` : null,
+        progress_value: form.status === "complete" ? 100 : progress,
+        progress_mode: "manual",
+      };
+      const edited = form.editing;
+      if (edited) await push("update", edited.id, changes, edited.version);
+      else await push("create", crypto.randomUUID(), changes);
       setForm(null);
       await load();
-      setNotice("Milestone added.");
+      setNotice(edited ? "Milestone updated." : "Milestone added.");
     } catch (e) {
       setError(e instanceof Error ? e.message : "The milestone could not be saved.");
     } finally {
@@ -108,7 +159,7 @@ export default function MilestonesPage() {
           <h1>Milestones make progress visible.</h1>
           <p className="page-lede">Turn a large goal into a sequence you can return to.</p>
         </div>
-        <button className="button button-primary" type="button" onClick={openForm} disabled={!workspace}>＋ Add milestone</button>
+        <button className="button button-primary" type="button" onClick={() => openForm()} disabled={!workspace}>＋ Add milestone</button>
       </div>
       {error && <div className="notice notice-error" role="alert">{error}</div>}
       {notice && <div className="notice" role="status">{notice}</div>}
@@ -116,7 +167,7 @@ export default function MilestonesPage() {
       {form && (
         <section ref={formRef} className="panel grant-form-panel" aria-labelledby="milestone-form-title">
           <div className="panel-heading">
-            <div><p className="eyebrow">Milestone</p><h2 id="milestone-form-title">New milestone</h2></div>
+            <div><p className="eyebrow">Milestone</p><h2 id="milestone-form-title">{form.editing ? "Edit milestone" : "New milestone"}</h2></div>
             <button className="button button-secondary" type="button" onClick={() => setForm(null)}>Cancel</button>
           </div>
           {projects.length === 0 ? (
@@ -136,7 +187,7 @@ export default function MilestonesPage() {
               </div>
               <label>Notes<textarea maxLength={20000} rows={3} value={form.description} onChange={set("description")} placeholder="What does done look like?" /></label>
               <div className="grant-form-actions">
-                <button className="button button-primary" type="submit" disabled={saving}>{saving ? "Saving…" : "Add milestone"}</button>
+                <button className="button button-primary" type="submit" disabled={saving}>{saving ? "Saving…" : form.editing ? "Save changes" : "Add milestone"}</button>
                 <button className="button button-secondary" type="button" onClick={() => setForm(null)} disabled={saving}>Cancel</button>
               </div>
             </form>
@@ -173,6 +224,11 @@ export default function MilestonesPage() {
                           ? "That time has already passed, so no reminder was set." : ""}
                       />
                     )}
+                    <div className="milestone-actions">
+                      <button type="button" className="text-button" onClick={() => toggleDone(milestone)} disabled={saving} aria-label={`${milestone.status === "complete" ? "Reopen" : "Mark complete"}: ${milestone.title}`}>{milestone.status === "complete" ? "Reopen" : "Mark complete"}</button>
+                      <button type="button" className="text-button" onClick={() => openForm(milestone)} aria-label={`Edit ${milestone.title}`}>Edit</button>
+                      <button type="button" className="text-button danger-text" onClick={() => void remove(milestone)} disabled={saving} aria-label={`Delete ${milestone.title}`}>Delete</button>
+                    </div>
                   </div>
                   <div className="milestone-progress">
                     <b>{progress}%</b>
@@ -190,6 +246,7 @@ export default function MilestonesPage() {
           </div>
         )}
       </section>
+      {deleted && <UndoBar message={`“${deleted.title}” deleted.`} busy={saving} onUndo={() => void restore()} onDismiss={() => setDeleted(null)} />}
     </div>
   );
 }

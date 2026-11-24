@@ -58,7 +58,7 @@ async def create_export(
         eid,
         timedelta(minutes=settings.export_link_ttl_minutes),
     )
-    return envelope(request, {"id": str(eid), "status": "pending"})
+    return envelope(request, {"id": str(eid), "status": "pending", "format": body.format})
 
 
 @router.get("/{export_id}")

@@ -390,8 +390,8 @@ export default function ScholarshipsPage() {
                       {scheme.coverage && <p><b>Covers</b>{scheme.coverage}</p>}
                       {scheme.strategy && <p><b>Strategy and next steps</b>{scheme.strategy}</p>}
                       <div className="grant-card-actions">
-                        <button className="button button-secondary" type="button" onClick={() => show({ kind: "scheme", editing: scheme })}>Edit</button>
-                        <button className="button button-danger" type="button" disabled={busy} onClick={() => removeScheme(scheme)}>Delete</button>
+                        <button className="button button-secondary" type="button" onClick={() => show({ kind: "scheme", editing: scheme })} aria-label={`Edit scheme ${scheme.name}`}>Edit</button>
+                        <button className="button button-danger" type="button" disabled={busy} onClick={() => removeScheme(scheme)} aria-label={`Delete scheme ${scheme.name}`}>Delete</button>
                       </div>
                     </article>
                   ))}
@@ -460,8 +460,8 @@ export default function ScholarshipsPage() {
                             Visit site<span aria-hidden="true">↗</span><span className="sr-only"> for {item.university} (opens in a new tab)</span>
                           </a>
                         )}
-                        <button className="button button-secondary" type="button" onClick={() => show({ kind: "application", editing: item })}>Edit</button>
-                        <button className="button button-danger" type="button" onClick={() => removeApplication(item)} disabled={busy}>Delete</button>
+                        <button className="button button-secondary" type="button" onClick={() => show({ kind: "application", editing: item })} aria-label={`Edit ${item.university}`}>Edit</button>
+                        <button className="button button-danger" type="button" onClick={() => removeApplication(item)} disabled={busy} aria-label={`Delete ${item.university}`}>Delete</button>
                       </div>
                     </article>
                   );
